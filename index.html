@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 
-<html lang="de">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -331,22 +331,22 @@ display: none;
 </head>
 <body>
 
-<div id="demo-banner">🔧 Demo-Modus — Supabase URL &amp; Key im Script eintragen</div>
+<div id="demo-banner">🔧 Demo mode — add your Supabase URL &amp; Key in the script</div>
 <div id="view"></div>
 <nav id="nav"><div class="nav-inner" id="nav-inner"></div></nav>
 
 <div class="modal-bg" id="modal-med">
   <div class="modal-sheet">
     <div class="modal-hdr">
-      <span class="modal-title">Neues Medikament</span>
+      <span class="modal-title" id="med-modal-title">Neues Medikament</span>
       <button class="close-btn" onclick="closeModal('modal-med')">✕</button>
     </div>
-    <input class="field" id="f-name" placeholder="Name (z.B. Ibuprofen)">
-    <input class="field" id="f-dose" placeholder="Dosierung (z.B. 400mg)">
-    <input class="field" id="f-notes" placeholder="Notizen (optional)">
-    <p class="section-lbl">Farbe</p>
+    <input class="field" id="f-name" placeholder="Name (e.g. Ibuprofen)">
+    <input class="field" id="f-dose" placeholder="Dosage (e.g. 400mg)">
+    <input class="field" id="f-notes" placeholder="Notes (optional)">
+    <p class="section-lbl">Color</p>
     <div class="color-grid" id="color-grid"></div>
-    <button class="btn-save" onclick="submitMed()">Hinzufügen</button>
+    <button class="btn-save" id="med-modal-save" onclick="submitMed()">Add</button>
   </div>
 </div>
 
@@ -358,21 +358,22 @@ display: none;
       <button class="close-btn" onclick="closeModal('modal-sched')">✕</button>
     </div>
     <div id="sm-body"></div>
-    <button class="btn-save" onclick="submitSched()">Speichern</button>
+    <button class="btn-save" onclick="submitSched()">Save</button>
   </div>
 </div>
 
 <script>
-const SUPABASE_URL = 'https://lzhkbbwcjfsvpkpmcwdu.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx6aGtiYndjamZzdnBrcG1jd2R1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU4NTUzNDUsImV4cCI6MjA5MTQzMTM0NX0.GhbRy4qhwHbcLgPcp0v5JEtC_oS95O7sh0yl7VXxgDI';
+const SUPABASE_URL = 'https://YOUR_PROJECT.supabase.co';
+const SUPABASE_KEY = 'YOUR_ANON_KEY';
 const DEMO = SUPABASE_URL.includes('YOUR_PROJECT');
 
-const DAYS   = ['Mo','Di','Mi','Do','Fr','Sa','So'];
+const DAYS   = ['Mo','Tu','We','Th','Fr','Sa','Su'];
 const TIMES  = ['morning','noon','evening'];
-const TLABEL = { morning:'Morgens', noon:'Mittags', evening:'Abends' };
+const TLABEL = { morning:'Morning', noon:'Noon', evening:'Evening' };
 const TICON  = { morning:'☀️', noon:'🌤', evening:'🌙' };
 const TCOLOR = { morning:'#FF6B00', noon:'#FF9233', evening:'#CC5500' };
 const PAL    = ['#FF6B00','#FF8C00','#FFA500','#FFB347','#E55A00','#FF4500','#CC5500','#FF7F00','#D4622A','#FF9233'];
+const alpha  = arr => [...arr].sort((a,b)=>a.name.localeCompare(b.name));
 
 const S = {
   tab: 'today',
@@ -381,6 +382,7 @@ const S = {
   calOffset: 0, calSel: isoToday(),
   pickedColor: PAL[0],
   schedMedId: null, schedEdit: {},
+  schedOpen_planned: false, schedOpen_unplanned: true,
   delConfirm: null,
 };
 
@@ -396,6 +398,7 @@ function schedForDay(date) {
     const m=S.meds.find(x=>x.id===s.med_id);
     if(m) r[s.time_of_day].push(m);
   });
+  r.morning=alpha(r.morning); r.noon=alpha(r.noon); r.evening=alpha(r.evening);
   return r;
 }
 function dayStats(date) {
@@ -418,9 +421,9 @@ async function sb(method, path, body) {
 
 function initDemo() {
   S.meds=[
-    {id:1,name:'Ibuprofen',dose:'400mg',color:'#FF6B00',notes:'Mit Mahlzeit'},
-    {id:2,name:'Vitamin D',dose:'1000 IE',color:'#FFB347',notes:''},
-    {id:3,name:'Magnesium',dose:'300mg',color:'#CC5500',notes:'Abends'},
+    {id:1,name:'Ibuprofen',dose:'400mg',color:'#FF6B00',notes:'Take with food'},
+    {id:2,name:'Vitamin D',dose:'1000 IU',color:'#FFB347',notes:''},
+    {id:3,name:'Magnesium',dose:'300mg',color:'#CC5500',notes:'Evening'},
   ];
   S.schedules=[
     {id:1,med_id:1,days:[0,1,2,3,4,5,6],time_of_day:'morning'},
@@ -509,7 +512,7 @@ function render(){
 function renderNav(){
   const ni=document.getElementById('nav-inner');
   ni.innerHTML='';
-  [['today','💊','Heute'],['calendar','📅','Kalender'],['insights','📊','Insights'],['schedules','⏰','Pläne'],['meds','🩺','Medis']].forEach(([id,icon,lbl])=>{
+  [['today','💊','Today'],['calendar','📅','Calendar'],['insights','📊','Insights'],['schedules','⏰','Schedules'],['meds','🩺','Meds']].forEach(([id,icon,lbl])=>{
     const btn=document.createElement('button');
     btn.className='nav-btn'+(S.tab===id?' on':'');
     btn.innerHTML=`<span class="ni">${icon}</span><span class="nl">${lbl}</span><span class="nav-dot"></span>`;
@@ -524,13 +527,13 @@ function renderToday(){
   const total=Object.values(sc).flat().length;
   const takenN=TIMES.reduce((a,t)=>a+sc[t].filter(m=>isTaken(m.id,t,today)).length,0);
   const now=new Date();
-  const dayName=['Sonntag','Montag','Dienstag','Mittwoch','Donnerstag','Freitag','Samstag'][now.getDay()];
-  const dateStr=now.toLocaleDateString('de-DE',{day:'numeric',month:'long'});
+  const dayName=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][now.getDay()];
+  const dateStr=now.toLocaleDateString('en-US',{day:'numeric',month:'long'});
   const frag=document.createDocumentFragment();
 
   const hdr=document.createElement('div'); hdr.className='today-hdr';
   const left=document.createElement('div');
-  left.innerHTML=`<p style="color:#666;font-size:14px;margin-bottom:2px">${dayName}, ${dateStr}</p><h1 class="page-title">Heute</h1>`;
+  left.innerHTML=`<p style="color:#666;font-size:14px;margin-bottom:2px">${dayName}, ${dateStr}</p><h1 class="page-title">Today</h1>`;
   hdr.append(left, makeRing(18,takenN,total));
   frag.append(hdr);
 
@@ -548,7 +551,7 @@ function renderToday(){
         <span class="time-badge">${tkN}/${meds.length}</span>
       </div>
       <div class="time-right">
-        ${meds.length?`<button class="take-all${allDone?' done':''}" onclick="event.stopPropagation();takeAll('${time}')">${allDone?'✓ Alle':'Alle nehmen'}</button>`:''}
+        ${meds.length?`<button class="take-all${allDone?' done':''}" onclick="event.stopPropagation();takeAll('${time}')">${allDone?'✓ All':'Take All'}</button>`:''}
         <span class="chevron" style="transform:${isOpen?'rotate(180deg)':'rotate(0deg)'}">⌄</span>
       </div>`;
     hdrBtn.onclick=()=>{S.open[time]=!S.open[time];render();};
@@ -556,7 +559,7 @@ function renderToday(){
     if(isOpen){
       const list=document.createElement('div'); list.className='med-list';
       if(!meds.length){
-        list.innerHTML='<p style="color:#444;font-size:14px;text-align:center;padding:12px 0">Keine Medikamente geplant</p>';
+        list.innerHTML='<p style="color:#444;font-size:14px;text-align:center;padding:12px 0">No medications scheduled</p>';
       } else {
         meds.forEach(med=>{
           const tk=isTaken(med.id,time,today);
@@ -591,7 +594,7 @@ function renderCalendar(){
   const wE=week[6].toLocaleDateString('de-DE',{day:'numeric',month:'short',year:'numeric'});
   ch.innerHTML=`
     <button class="week-nav" onclick="S.calOffset--;render()">‹</button>
-    <div style="text-align:center"><h1 class="page-title">Kalender</h1><p class="sub-text">${wS} – ${wE}</p></div>
+    <div style="text-align:center"><h1 class="page-title">Calendar</h1><p class="sub-text">${wS} – ${wE}</p></div>
     <button class="week-nav" onclick="S.calOffset++;render()">›</button>`;
   frag.append(ch);
 
@@ -625,18 +628,18 @@ function renderCalendar(){
 
   const selStr=S.calSel, isFut=selStr>todayStr;
   const selDate=new Date(selStr+'T12:00:00');
-  const tag=selStr===todayStr?'Heute':isFut?'Geplant':'Rückblick';
-  const dlabel=selDate.toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long'});
+  const tag=selStr===todayStr?'Today':isFut?'Upcoming':'Past';
+  const dlabel=selDate.toLocaleDateString('en-US',{weekday:'long',day:'numeric',month:'long'});
   const {total:sT,taken:sTk}=dayStats(selStr);
   const selSc=schedForDay(selStr);
 
   const dc=document.createElement('div'); dc.className='detail-card';
   const dh=document.createElement('div'); dh.className='detail-hdr';
-  dh.innerHTML=`<div><div class="detail-tag">${tag}</div><div class="detail-date">${dlabel}</div></div>${sT?`<div><div class="detail-num">${sTk}/${sT}</div><div class="detail-numlbl">GENOMMEN</div></div>`:''}`;
+  dh.innerHTML=`<div><div class="detail-tag">${tag}</div><div class="detail-date">${dlabel}</div></div>${sT?`<div><div class="detail-num">${sTk}/${sT}</div><div class="detail-numlbl">TAKEN</div></div>`:''}`;
   dc.append(dh);
   const db=document.createElement('div'); db.className='detail-body';
   if(!sT){
-    db.innerHTML='<p class="empty">Keine Medikamente geplant</p>';
+    db.innerHTML='<p class="empty">No medications scheduled</p>';
   } else {
     TIMES.forEach(time=>{
       const meds=selSc[time]||[];
@@ -667,7 +670,13 @@ function renderCalendar(){
 
 function renderInsights(){
   const today=new Date();
+  const todayStr=isoToday();
+  // Build Mon–Sun of current week
+  const mon=new Date(today); mon.setDate(today.getDate()-((today.getDay()+6)%7));
+  const week7=Array.from({length:7},(_,i)=>{const d=new Date(mon);d.setDate(mon.getDate()+i);return isoOf(d);});
+  // Stats over last 7 actual days for accuracy
   const last7=Array.from({length:7},(_,i)=>{const d=new Date(today);d.setDate(today.getDate()-(6-i));return isoOf(d);});
+
   let totAll=0,tkAll=0;
   last7.forEach(date=>{
     const w=weekday(date),sc=S.schedules.filter(s=>s.days?.includes(w));
@@ -676,37 +685,43 @@ function renderInsights(){
   });
   const rate=totAll>0?Math.round(tkAll/totAll*100):0;
   let streak=0;
-  for(let i=6;i>=0;i--){
+  for(let i=last7.length-1;i>=0;i--){
     const date=last7[i],w=weekday(date),sc=S.schedules.filter(s=>s.days?.includes(w));
     if(!sc.length) continue;
     if(sc.every(s=>S.logs.some(l=>l.med_id===s.med_id&&l.time_of_day===s.time_of_day&&l.date===date))) streak++;
     else break;
   }
+
   const frag=document.createDocumentFragment();
   const th=document.createElement('div');
-  th.innerHTML=`<h1 class="page-title">Insights</h1><p class="sub-text" style="margin-bottom:20px">Letzte 7 Tage</p>`;
+  th.innerHTML=`<h1 class="page-title">Insights</h1><p class="sub-text" style="margin-bottom:20px">This week</p>`;
   frag.append(th);
+
   const s3=document.createElement('div'); s3.className='stats3';
   s3.innerHTML=`
-    <div class="stat-box"><span style="font-size:22px">🎯</span><span class="stat-val">${rate}%</span><span class="stat-lbl">Einnahme­rate</span></div>
-    <div class="stat-box"><span style="font-size:22px">🔥</span><span class="stat-val">${streak}</span><span class="stat-lbl">Tage in Folge</span></div>
-    <div class="stat-box"><span style="font-size:22px">✅</span><span class="stat-val">${tkAll}</span><span class="stat-lbl">Genommen</span></div>`;
+    <div class="stat-box"><span style="font-size:22px">🎯</span><span class="stat-val">${rate}%</span><span class="stat-lbl">Adherence rate</span></div>
+    <div class="stat-box"><span style="font-size:22px">🔥</span><span class="stat-val">${streak}</span><span class="stat-lbl">Day streak</span></div>
+    <div class="stat-box"><span style="font-size:22px">✅</span><span class="stat-val">${tkAll}</span><span class="stat-lbl">Taken</span></div>`;
   frag.append(s3);
+
   const bw=document.createElement('div'); bw.className='bar-wrap';
-  bw.innerHTML='<p class="bar-title">Wochenverlauf</p>';
+  bw.innerHTML='<p class="bar-title">Mon – Sun</p>';
   const bars=document.createElement('div'); bars.className='bars';
-  last7.forEach((date,i)=>{
+  week7.forEach((date)=>{
     const w=weekday(date),sc=S.schedules.filter(s=>s.days?.includes(w));
-    const r=sc.length?Math.round(S.logs.filter(l=>l.date===date&&sc.some(s=>s.med_id===l.med_id&&s.time_of_day===l.time_of_day)).length/sc.length*100):0;
-    const col=r>=80?'#FF6B00':r>=50?'#FF9233':'#3D1200';
+    const isFuture=date>todayStr;
+    const r=(!isFuture&&sc.length)?Math.round(S.logs.filter(l=>l.date===date&&sc.some(s=>s.med_id===l.med_id&&s.time_of_day===l.time_of_day)).length/sc.length*100):0;
+    const col=isFuture?'#2a2a2a':r>=80?'#FF6B00':r>=50?'#FF9233':'#3D1200';
+    const isToday=date===todayStr;
     const bc=document.createElement('div'); bc.className='bar-col';
-    bc.innerHTML=`<div class="bar-track"><div class="bar-fill" style="height:${r}%;background:${col}"></div></div><span class="bar-lbl">${DAYS[i]}</span>`;
+    bc.innerHTML=`<div class="bar-track"><div class="bar-fill" style="height:${r}%;background:${col}"></div></div><span class="bar-lbl" style="color:${isToday?'#FF6B00':'#666'};font-weight:${isToday?'800':'600'}">${DAYS[w]}</span>`;
     bars.append(bc);
   });
   bw.append(bars); frag.append(bw);
-  const mt=document.createElement('p'); mt.style.cssText='font-size:16px;font-weight:700;margin-bottom:8px;color:#fff'; mt.textContent='Pro Medikament';
+
+  const mt=document.createElement('p'); mt.style.cssText='font-size:16px;font-weight:700;margin-bottom:8px;color:#fff'; mt.textContent='Per Medication';
   frag.append(mt);
-  S.meds.forEach(med=>{
+  alpha(S.meds).forEach(med=>{
     let t=0,tk=0;
     last7.forEach(date=>{
       const w=weekday(date),sc=S.schedules.filter(s=>s.med_id===med.id&&s.days?.includes(w));
@@ -722,7 +737,7 @@ function renderInsights(){
           <span style="font-size:15px;font-weight:700;color:${col}">${r}%</span>
         </div>
         <div class="prog"><div class="prog-fill" style="width:${r}%;background:${med.color}"></div></div>
-        <span style="font-size:12px;color:#666">${tk} von ${t} genommen</span>
+        <span style="font-size:12px;color:#666">${tk} of ${t} taken</span>
       </div>`;
     frag.append(mc);
   });
@@ -731,25 +746,68 @@ function renderInsights(){
 
 function renderSchedules(){
   const frag=document.createDocumentFragment();
-  const h1=document.createElement('h1'); h1.className='page-title'; h1.style.marginBottom='20px'; h1.textContent='Einnahme\u00ADpläne';
+  const h1=document.createElement('h1'); h1.className='page-title'; h1.style.marginBottom='16px'; h1.textContent='Schedules';
   frag.append(h1);
-  if(!S.meds.length){frag.append(Object.assign(document.createElement('p'),{className:'empty',textContent:'Zuerst Medikamente unter „Medis" anlegen.'}));return frag;}
-  S.meds.forEach(med=>{
-    const card=document.createElement('button'); card.className='sched-item'; card.onclick=()=>openSchedModal(med);
+  if(!S.meds.length){frag.append(Object.assign(document.createElement('p'),{className:'empty',textContent:'Add medications under "Meds" first.'}));return frag;}
+
+  const planned   = alpha(S.meds.filter(m=>S.schedules.some(sc=>sc.med_id===m.id&&sc.days?.length>0)));
+  const unplanned = alpha(S.meds.filter(m=>!S.schedules.some(sc=>sc.med_id===m.id&&sc.days?.length>0)));
+
+  // Category tabs
+  if(!S.schedCat) S.schedCat = unplanned.length ? 'unplanned' : 'planned';
+  const tabBar=document.createElement('div');
+  tabBar.style.cssText='display:flex;gap:8px;margin-bottom:20px';
+  [['unplanned',`Unscheduled (${unplanned.length})`],['planned',`Scheduled (${planned.length})`]].forEach(([id,lbl])=>{
+    const btn=document.createElement('button');
+    const active=S.schedCat===id;
+    btn.style.cssText=`flex:1;padding:10px;border-radius:12px;border:none;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;background:${active?'#FF6B00':'#1a1a1a'};color:${active?'#000':'#555'}`;
+    btn.textContent=lbl;
+    btn.onclick=()=>{S.schedCat=id;render();};
+    tabBar.append(btn);
+  });
+  frag.append(tabBar);
+
+  const list = S.schedCat==='planned' ? planned : unplanned;
+
+  if(!list.length){
+    const empty=document.createElement('div');
+    empty.style.cssText='text-align:center;padding:40px 24px;background:#1a1a1a;border-radius:20px';
+    empty.innerHTML=S.schedCat==='unplanned'
+      ? `<p style="font-size:32px;margin-bottom:12px">✅</p><p style="font-size:15px;font-weight:700;color:#fff;margin-bottom:4px">All scheduled</p><p style="font-size:13px;color:#555">All medications have a schedule.</p>`
+      : `<p style="font-size:32px;margin-bottom:12px">📋</p><p style="font-size:15px;font-weight:700;color:#fff;margin-bottom:4px">No schedules yet</p><p style="font-size:13px;color:#555">Switch to "Unscheduled" to set up schedules.</p>`;
+    frag.append(empty);
+    return frag;
+  }
+
+  list.forEach(med=>{
     const badges=TIMES.map(t=>{
       const s=S.schedules.find(sc=>sc.med_id===med.id&&sc.time_of_day===t);
       if(!s||!s.days?.length) return '';
-      const lbl=s.days.length===7?'Täglich':s.days.map(d=>DAYS[d]).join(', ');
-      return `<span class="badge" style="background:${TCOLOR[t]}30;color:${TCOLOR[t]}">${TICON[t]} ${lbl}</span>`;
-    }).join('');
-    card.innerHTML=`
-      <div class="dot" style="background:${med.color};margin-top:2px"></div>
-      <div style="flex:1">
-        <p style="font-size:16px;font-weight:700;color:#fff;margin-bottom:2px">${med.name}</p>
-        <p style="font-size:13px;color:#666;margin-bottom:8px">${med.dose}</p>
-        <div>${badges}</div>
-      </div>
-      <span style="font-size:20px;color:#444;margin-top:4px">›</span>`;
+      const lbl=s.days.length===7?'Daily':s.days.map(d=>DAYS[d]).join(', ');
+      return `${TICON[t]} ${lbl}`;
+    }).filter(Boolean).join('  ·  ');
+
+    const card=document.createElement('div');
+    card.style.cssText='background:#1a1a1a;border-radius:16px;margin-bottom:10px;display:flex;align-items:stretch;overflow:hidden;cursor:pointer';
+    card.onclick=()=>openSchedModal(med);
+
+    const bar=document.createElement('div');
+    bar.style.cssText=`width:4px;background:${med.color};flex-shrink:0`;
+
+    const body=document.createElement('div');
+    body.style.cssText='flex:1;padding:14px 14px 14px 16px;display:flex;align-items:center;gap:12px;min-width:0';
+
+    const textBlock=document.createElement('div'); textBlock.style.cssText='flex:1;min-width:0';
+    textBlock.innerHTML=`
+      <p style="font-size:16px;font-weight:700;color:#fff;margin-bottom:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${med.name}</p>
+      <p style="font-size:13px;color:#666">${med.dose}${badges?`<span style="color:#888"> · ${badges}</span>`:'<span style="color:#444"> · No schedule set</span>'}</p>`;
+
+    const arrow=document.createElement('span');
+    arrow.style.cssText='font-size:18px;color:#333;flex-shrink:0';
+    arrow.textContent='›';
+
+    body.append(textBlock,arrow);
+    card.append(bar,body);
     frag.append(card);
   });
   return frag;
@@ -757,36 +815,81 @@ function renderSchedules(){
 
 function renderMeds(){
   const frag=document.createDocumentFragment();
+
+  // Header
   const hdr=document.createElement('div'); hdr.style.cssText='display:flex;justify-content:space-between;align-items:center;margin-bottom:20px';
-  const h1=document.createElement('h1'); h1.className='page-title'; h1.textContent='Medikamente';
-  const ab=document.createElement('button'); ab.className='btn-orange'; ab.textContent='+ Neu'; ab.onclick=openMedModal;
+  const h1=document.createElement('h1'); h1.className='page-title'; h1.textContent='Medications';
+  const ab=document.createElement('button'); ab.className='btn-orange'; ab.textContent='+ New'; ab.onclick=openMedModal;
   hdr.append(h1,ab); frag.append(hdr);
-  if(!S.meds.length){frag.append(Object.assign(document.createElement('p'),{className:'empty',textContent:'Noch keine Medikamente angelegt.'}));}
-  S.meds.forEach(med=>{
-    const card=document.createElement('div'); card.className='med-card';
-    card.innerHTML=`
-      <div class="med-bar" style="background:${med.color}"></div>
-      <div style="flex:1">
-        <p style="font-size:17px;font-weight:700;color:#fff;margin-bottom:2px">${med.name}</p>
-        <p style="font-size:14px;color:#666">${med.dose}</p>
-        ${med.notes?`<p style="font-size:12px;color:#444;margin-top:4px">${med.notes}</p>`:''}
-      </div>`;
+
+  if(!S.meds.length){
+    const empty=document.createElement('div');
+    empty.style.cssText='text-align:center;padding:48px 24px;background:#1a1a1a;border-radius:20px';
+    empty.innerHTML=`<div style="font-size:48px;margin-bottom:16px">💊</div><p style="font-size:17px;font-weight:700;color:#fff;margin-bottom:8px">No medications</p><p style="font-size:14px;color:#555">Tap "+ New" to add your first medication.</p>`;
+    frag.append(empty);
+    return frag;
+  }
+
+  alpha(S.meds).forEach(med=>{
+    const last7taken=S.logs.filter(l=>l.med_id===med.id).length;
+    const hasSchedule=S.schedules.some(s=>s.med_id===med.id&&s.days?.length>0);
+
+    const card=document.createElement('div');
+    card.style.cssText='background:#1a1a1a;border-radius:16px;margin-bottom:10px;display:flex;align-items:stretch;overflow:hidden';
+
+    // Left color bar
+    const bar=document.createElement('div');
+    bar.style.cssText=`width:4px;background:${med.color};flex-shrink:0`;
+
+    // Main content
+    const body=document.createElement('div');
+    body.style.cssText='flex:1;padding:14px 14px 14px 16px;display:flex;align-items:center;gap:12px;min-width:0';
+
+    const textBlock=document.createElement('div'); textBlock.style.cssText='flex:1;min-width:0';
+    textBlock.innerHTML=`
+      <p style="font-size:16px;font-weight:700;color:#fff;margin-bottom:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${med.name}</p>
+      <p style="font-size:13px;color:#666">${med.dose}${med.notes?`<span style="color:#444"> · ${med.notes}</span>`:''}${!hasSchedule?` <span style="color:#FF6B0088;font-size:11px">· no schedule</span>`:''}</p>`;
+
+    // 7-day pill
+    const pill=document.createElement('div');
+    pill.style.cssText=`background:${med.color}18;border-radius:10px;padding:5px 10px;text-align:center;flex-shrink:0`;
+    pill.innerHTML=`<p style="font-size:15px;font-weight:800;color:${med.color};line-height:1">${last7taken}</p><p style="font-size:9px;color:${med.color};opacity:.65;font-weight:700;letter-spacing:.3px">7 DAYS</p>`;
+
+    // Delete button
+    const del=document.createElement('button');
+    del.style.cssText='background:none;border:none;font-size:16px;cursor:pointer;padding:0;flex-shrink:0;opacity:.5';
+    del.textContent='🗑';
+
     if(S.delConfirm===med.id){
-      const wrap=document.createElement('div'); wrap.style.cssText='display:flex;gap:8px';
-      const yes=document.createElement('button'); yes.style.cssText='background:#CC2200;color:#fff;border:none;border-radius:12px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit'; yes.textContent='Löschen'; yes.onclick=()=>deleteMed(med.id);
-      const no=document.createElement('button'); no.style.cssText='background:#2a2a2a;color:#666;border:none;border-radius:12px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit'; no.textContent='Nein'; no.onclick=()=>{S.delConfirm=null;render();};
-      wrap.append(yes,no); card.append(wrap);
+      body.append(textBlock);
+      const wrap=document.createElement('div'); wrap.style.cssText='display:flex;gap:6px;flex-shrink:0';
+      const yes=document.createElement('button'); yes.style.cssText='background:#CC2200;color:#fff;border:none;border-radius:10px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit'; yes.textContent='Delete'; yes.onclick=()=>deleteMed(med.id);
+      const no=document.createElement('button'); no.style.cssText='background:#2a2a2a;color:#666;border:none;border-radius:10px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit'; no.textContent='Cancel'; no.onclick=()=>{S.delConfirm=null;render();};
+      wrap.append(yes,no); body.append(wrap);
     } else {
-      const del=document.createElement('button'); del.className='del-btn'; del.textContent='🗑'; del.onclick=()=>{S.delConfirm=med.id;render();};
-      card.append(del);
+      const edit=document.createElement('button');
+      edit.style.cssText='background:#252525;border:none;border-radius:8px;padding:5px 10px;font-size:12px;font-weight:700;color:#888;cursor:pointer;font-family:inherit;flex-shrink:0';
+      edit.textContent='Edit';
+      edit.onclick=()=>openEditMedModal(med);
+      const del=document.createElement('button');
+      del.style.cssText='background:none;border:none;font-size:16px;cursor:pointer;padding:0;flex-shrink:0;opacity:.4';
+      del.textContent='🗑';
+      del.onclick=()=>{S.delConfirm=med.id;render();};
+      body.append(textBlock,pill,edit,del);
     }
+
+    card.append(bar,body);
     frag.append(card);
   });
   return frag;
 }
 
+
 function openMedModal(){
+  S.editMedId=null;
   S.pickedColor=PAL[0];
+  document.getElementById('med-modal-title').textContent='New Medication';
+  document.getElementById('med-modal-save').textContent='Add';
   document.getElementById('f-name').value='';
   document.getElementById('f-dose').value='';
   document.getElementById('f-notes').value='';
@@ -799,11 +902,36 @@ function openMedModal(){
   });
   openModal('modal-med');
 }
+function openEditMedModal(med){
+  S.editMedId=med.id;
+  S.pickedColor=med.color;
+  document.getElementById('med-modal-title').textContent='Edit Medication';
+  document.getElementById('med-modal-save').textContent='Save';
+  document.getElementById('f-name').value=med.name;
+  document.getElementById('f-dose').value=med.dose;
+  document.getElementById('f-notes').value=med.notes||'';
+  const grid=document.getElementById('color-grid'); grid.innerHTML='';
+  PAL.forEach(c=>{
+    const sw=document.createElement('button'); sw.className='cswatch'+(c===S.pickedColor?' on':'');
+    sw.style.background=c; sw.textContent=c===S.pickedColor?'✓':'';
+    sw.onclick=()=>{S.pickedColor=c;grid.querySelectorAll('.cswatch').forEach(s=>{s.classList.remove('on');s.textContent='';});sw.classList.add('on');sw.textContent='✓';};
+    grid.append(sw);
+  });
+  openModal('modal-med');
+}
 async function submitMed(){
   const name=document.getElementById('f-name').value.trim(); if(!name) return;
-  const med={name,dose:document.getElementById('f-dose').value.trim(),notes:document.getElementById('f-notes').value.trim(),color:S.pickedColor,id:Date.now()};
-  if(!DEMO){const r=await sb('POST','medications',med);if(r?.[0])med.id=r[0].id;}
-  S.meds.push(med); closeModal('modal-med'); render();
+  const data={name,dose:document.getElementById('f-dose').value.trim(),notes:document.getElementById('f-notes').value.trim(),color:S.pickedColor};
+  if(S.editMedId){
+    if(!DEMO) await sb('PATCH',`medications?id=eq.${S.editMedId}`,data);
+    const idx=S.meds.findIndex(m=>m.id===S.editMedId);
+    if(idx>=0) S.meds[idx]={...S.meds[idx],...data};
+  } else {
+    const med={...data,id:Date.now()};
+    if(!DEMO){const r=await sb('POST','medications',med);if(r?.[0])med.id=r[0].id;}
+    S.meds.push(med);
+  }
+  closeModal('modal-med'); render();
 }
 async function deleteMed(id){
   if(!DEMO) await sb('DELETE',`medications?id=eq.${id}`);
@@ -834,7 +962,7 @@ function renderSchedBody(){
     });
     sec.append(grid);
     const ab=document.createElement('button'); ab.className='all-btn';
-    ab.textContent=S.schedEdit[time].length===7?'Alle abwählen':'Täglich';
+    ab.textContent=S.schedEdit[time].length===7?'Deselect all':'Every day';
     ab.onclick=()=>{S.schedEdit[time]=S.schedEdit[time].length===7?[]:[0,1,2,3,4,5,6];renderSchedBody();};
     sec.append(ab); body.append(sec);
   });
