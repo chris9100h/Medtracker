@@ -380,12 +380,12 @@ const alpha  = arr => [...arr].sort((a,b)=>a.name.localeCompare(b.name));
 // Render collapsible group boxes around a list of meds
 // makeRow(med) => DOM element
 // alwaysOpen: groups are expanded by default (Today tab)
-function renderGrouped(meds, makeRow, alwaysOpen=false) {
+function renderGrouped(meds, makeRow, tabKey) {
   const frag = document.createDocumentFragment();
   GROUPS.forEach(group => {
     const groupMeds = alpha(meds.filter(m => (m.group||'Supplements') === group));
     if (!groupMeds.length) return;
-    const isOpen = alwaysOpen || S.groupOpen[group];
+    const isOpen = S.groupOpen[tabKey][group];
     const wrap = document.createElement('div');
     wrap.style.cssText = 'margin-bottom:10px';
 
@@ -395,10 +395,8 @@ function renderGrouped(meds, makeRow, alwaysOpen=false) {
       <span style="font-size:11px;font-weight:800;color:#FF6B00;text-transform:uppercase;letter-spacing:.8px">${group}</span>
       <span style="background:#FF6B0022;color:#FF6B00;border-radius:8px;padding:1px 7px;font-size:11px;font-weight:700">${groupMeds.length}</span>
       <div style="flex:1;height:1px;background:#222"></div>
-      <span style="font-size:16px;color:#444;transition:transform .2s;display:inline-block;transform:${isOpen?'rotate(180deg)':'rotate(0deg)'}"">⌄</span>`;
-    if (!alwaysOpen) {
-      hdr.onclick = () => { S.groupOpen[group] = !S.groupOpen[group]; render(); };
-    }
+      <span style="font-size:16px;color:#444;transition:transform .2s;display:inline-block;transform:${isOpen?'rotate(180deg)':'rotate(0deg)'}">⌄</span>`;
+    hdr.onclick = () => { S.groupOpen[tabKey][group] = !S.groupOpen[tabKey][group]; render(); };
     wrap.append(hdr);
 
     if (isOpen) {
@@ -418,7 +416,13 @@ const S = {
   schedMedId: null, schedEdit: {},
   schedOpen_planned: false, schedOpen_unplanned: true,
   schedCat: null,
-  groupOpen: { Supplements:false, Steroids:false, Peptides:false },
+  groupOpen: {
+    today:     { Supplements:true,  Steroids:true,  Peptides:true  },
+    calendar:  { Supplements:false, Steroids:false, Peptides:false },
+    insights:  { Supplements:false, Steroids:false, Peptides:false },
+    schedules: { Supplements:false, Steroids:false, Peptides:false },
+    meds:      { Supplements:false, Steroids:false, Peptides:false },
+  },
   delConfirm: null, editMedId: null,
 };
 
@@ -613,7 +617,7 @@ function renderToday(){
             <div class="chk${tk?' on':''}"></div>`;
           row.onclick=()=>toggleLog(med.id,time);
           return row;
-        }, false));
+        }, 'today'));
       }
       block.append(list);
     }
@@ -707,7 +711,7 @@ function renderCalendar(){
           <div class="dt-status ${sc2}">${icon}</div>`;
         if(!isFut) row.onclick=()=>toggleLog(med.id,time,selStr);
         return row;
-      }, false);
+      }, 'calendar');
       sec.append(grpFrag);
       db.append(sec);
     });
@@ -789,7 +793,7 @@ function renderInsights(){
         <span style="font-size:12px;color:#666">${tk} of ${t} taken</span>
       </div>`;
     return mc;
-  }, false));
+  }, 'insights'));
   return frag;
 }
 
@@ -852,7 +856,7 @@ function renderSchedules(){
     body.append(textBlock,arrow);
     card.append(bar,body);
     return card;
-  }));
+  }, 'schedules'));
   return frag;
 }
 
@@ -906,10 +910,9 @@ function renderMeds(){
     }
     card.append(bar,body);
     return card;
-  }));
+  }, 'meds'));
   return frag;
 }
-
 
 function renderGroupPicker(){
   const gp=document.getElementById('group-picker'); gp.innerHTML='';
