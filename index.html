@@ -472,7 +472,11 @@ function makeRing(r,tk,tot){
   return svg;
 }
 function makeMiniRing(tk,tot,sel=false){
-  const r=10,c=2*Math.PI*r,pct=tot>0?tk/tot:0;
+  const pct=tot>0?tk/tot:0;
+  const c=2*Math.PI*10;
+  const pctInt=Math.round(pct*100);
+  const label=tot>0?(pctInt===100?'✓':(pctInt+'%')):'';
+  const fs=label.length<=2?7:label.length===3?6:5;
   const ns='http://www.w3.org/2000/svg';
   const svg=document.createElementNS(ns,'svg');
   svg.setAttribute('viewBox','0 0 28 28');svg.setAttribute('width','28');svg.setAttribute('height','28');
@@ -489,9 +493,9 @@ function makeMiniRing(tk,tot,sel=false){
   fg.setAttribute('stroke-linecap','round');
   const txt=document.createElementNS(ns,'text');
   txt.setAttribute('x','14');txt.setAttribute('y','18');txt.setAttribute('text-anchor','middle');
-  txt.setAttribute('font-size','7');txt.setAttribute('font-weight','800');
+  txt.setAttribute('font-size',fs);txt.setAttribute('font-weight','800');
   txt.setAttribute('fill',sel?'rgba(0,0,0,.65)':'#888');
-  txt.textContent=`${tk}/${tot}`;
+  txt.textContent=label;
   svg.append(bg,fg,txt);
   return svg;
 }
