@@ -343,6 +343,8 @@ input.field::placeholder { color: #555; }
     <input class="field" id="f-name" placeholder="Name (e.g. Ibuprofen)">
     <input class="field" id="f-dose" placeholder="Dosage (e.g. 400mg)">
     <input class="field" id="f-notes" placeholder="Notes (optional)">
+    <p class="section-lbl">Group</p>
+    <div id="group-picker" style="display:flex;gap:8px;margin-bottom:20px"></div>
     <p class="section-lbl">Color</p>
     <div class="color-grid" id="color-grid"></div>
     <button class="btn-save" id="med-modal-save" onclick="submitMed()">Add</button>
@@ -372,17 +374,52 @@ const TLABEL = { morning:'Morning', noon:'Noon', evening:'Evening' };
 const TICON  = { morning:'☀️', noon:'🌤', evening:'🌙' };
 const TCOLOR = { morning:'#FF6B00', noon:'#FF9233', evening:'#CC5500' };
 const PAL    = ['#FF6B00','#FF8C00','#FFA500','#FFB347','#E55A00','#FF4500','#CC5500','#FF7F00','#D4622A','#FF9233'];
+const GROUPS = ['Supplements','Steroids','Peptides'];
 const alpha  = arr => [...arr].sort((a,b)=>a.name.localeCompare(b.name));
+
+// Render collapsible group boxes around a list of meds
+// makeRow(med) => DOM element
+// alwaysOpen: groups are expanded by default (Today tab)
+function renderGrouped(meds, makeRow, alwaysOpen=false) {
+  const frag = document.createDocumentFragment();
+  GROUPS.forEach(group => {
+    const groupMeds = alpha(meds.filter(m => (m.group||'Supplements') === group));
+    if (!groupMeds.length) return;
+    const isOpen = alwaysOpen || S.groupOpen[group];
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'margin-bottom:10px';
+
+    const hdr = document.createElement('button');
+    hdr.style.cssText = 'width:100%;background:none;border:none;display:flex;align-items:center;gap:10px;padding:6px 4px;cursor:pointer;font-family:inherit';
+    hdr.innerHTML = `
+      <span style="font-size:11px;font-weight:800;color:#FF6B00;text-transform:uppercase;letter-spacing:.8px">${group}</span>
+      <span style="background:#FF6B0022;color:#FF6B00;border-radius:8px;padding:1px 7px;font-size:11px;font-weight:700">${groupMeds.length}</span>
+      <div style="flex:1;height:1px;background:#222"></div>
+      <span style="font-size:16px;color:#444;transition:transform .2s;display:inline-block;transform:${isOpen?'rotate(180deg)':'rotate(0deg)'}"">⌄</span>`;
+    if (!alwaysOpen) {
+      hdr.onclick = () => { S.groupOpen[group] = !S.groupOpen[group]; render(); };
+    }
+    wrap.append(hdr);
+
+    if (isOpen) {
+      groupMeds.forEach(med => wrap.append(makeRow(med)));
+    }
+    frag.append(wrap);
+  });
+  return frag;
+}
 
 const S = {
   tab: 'today',
   meds: [], schedules: [], logs: [],
   open: { morning:true, noon:true, evening:true },
   calOffset: 0, calSel: isoToday(),
-  pickedColor: PAL[0],
+  pickedColor: PAL[0], pickedGroup: GROUPS[0],
   schedMedId: null, schedEdit: {},
   schedOpen_planned: false, schedOpen_unplanned: true,
-  delConfirm: null,
+  schedCat: null,
+  groupOpen: { Supplements:false, Steroids:false, Peptides:false },
+  delConfirm: null, editMedId: null,
 };
 
 function isoToday() { return new Date().toISOString().split('T')[0]; }
@@ -564,7 +601,7 @@ function renderToday(){
       if(!meds.length){
         list.innerHTML='<p style="color:#444;font-size:14px;text-align:center;padding:12px 0">No medications scheduled</p>';
       } else {
-        meds.forEach(med=>{
+        list.append(renderGrouped(meds, med => {
           const tk=isTaken(med.id,time,today);
           const row=document.createElement('button'); row.className='med-row'+(tk?' taken':'');
           row.innerHTML=`
@@ -575,8 +612,8 @@ function renderToday(){
             </div>
             <div class="chk${tk?' on':''}"></div>`;
           row.onclick=()=>toggleLog(med.id,time);
-          list.append(row);
-        });
+          return row;
+        }, false));
       }
       block.append(list);
     }
@@ -655,7 +692,7 @@ function renderCalendar(){
       if(!meds.length) return;
       const sec=document.createElement('div'); sec.className='dt-section';
       sec.innerHTML=`<div class="dt-time-row"><span>${TICON[time]} ${TLABEL[time].toUpperCase()}</span><div class="dt-divider"></div></div>`;
-      meds.forEach(med=>{
+      const grpFrag = renderGrouped(meds, med => {
         const tk=S.logs.some(l=>l.med_id===med.id&&l.time_of_day===time&&l.date===selStr);
         const sc2=tk?'ok':isFut?'fut':'no';
         const icon=tk?'✓':isFut?'·':'✗';
@@ -668,11 +705,10 @@ function renderCalendar(){
             <span style="font-size:12px;color:#444;margin-left:8px">${med.dose}</span>
           </div>
           <div class="dt-status ${sc2}">${icon}</div>`;
-        if(!isFut){
-          row.onclick=()=>toggleLog(med.id,time,selStr);
-        }
-        sec.append(row);
-      });
+        if(!isFut) row.onclick=()=>toggleLog(med.id,time,selStr);
+        return row;
+      }, false);
+      sec.append(grpFrag);
       db.append(sec);
     });
   }
@@ -734,7 +770,7 @@ function renderInsights(){
 
   const mt=document.createElement('p'); mt.style.cssText='font-size:16px;font-weight:700;margin-bottom:8px;color:#fff'; mt.textContent='Per Medication';
   frag.append(mt);
-  alpha(S.meds).forEach(med=>{
+  frag.append(renderGrouped(S.meds, med=>{
     let t=0,tk=0;
     last7.forEach(date=>{
       const w=weekday(date),sc=S.schedules.filter(s=>s.med_id===med.id&&s.days?.includes(w));
@@ -752,8 +788,8 @@ function renderInsights(){
         <div class="prog"><div class="prog-fill" style="width:${r}%;background:${med.color}"></div></div>
         <span style="font-size:12px;color:#666">${tk} of ${t} taken</span>
       </div>`;
-    frag.append(mc);
-  });
+    return mc;
+  }, false));
   return frag;
 }
 
@@ -792,37 +828,31 @@ function renderSchedules(){
     return frag;
   }
 
-  list.forEach(med=>{
+  frag.append(renderGrouped(list, med => {
     const badges=TIMES.map(t=>{
       const s=S.schedules.find(sc=>sc.med_id===med.id&&sc.time_of_day===t);
       if(!s||!s.days?.length) return '';
       const lbl=s.days.length===7?'Daily':s.days.map(d=>DAYS[d]).join(', ');
       return `${TICON[t]} ${lbl}`;
     }).filter(Boolean).join('  ·  ');
-
     const card=document.createElement('div');
     card.style.cssText='background:#1a1a1a;border-radius:16px;margin-bottom:10px;display:flex;align-items:stretch;overflow:hidden;cursor:pointer';
     card.onclick=()=>openSchedModal(med);
-
     const bar=document.createElement('div');
     bar.style.cssText=`width:4px;background:${med.color};flex-shrink:0`;
-
     const body=document.createElement('div');
     body.style.cssText='flex:1;padding:14px 14px 14px 16px;display:flex;align-items:center;gap:12px;min-width:0';
-
     const textBlock=document.createElement('div'); textBlock.style.cssText='flex:1;min-width:0';
     textBlock.innerHTML=`
       <p style="font-size:16px;font-weight:700;color:#fff;margin-bottom:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${med.name}</p>
       <p style="font-size:13px;color:#666">${med.dose}${badges?`<span style="color:#888"> · ${badges}</span>`:'<span style="color:#444"> · No schedule set</span>'}</p>`;
-
     const arrow=document.createElement('span');
     arrow.style.cssText='font-size:18px;color:#333;flex-shrink:0';
     arrow.textContent='›';
-
     body.append(textBlock,arrow);
     card.append(bar,body);
-    frag.append(card);
-  });
+    return card;
+  }));
   return frag;
 }
 
@@ -843,36 +873,22 @@ function renderMeds(){
     return frag;
   }
 
-  alpha(S.meds).forEach(med=>{
+  frag.append(renderGrouped(S.meds, med => {
     const last7taken=S.logs.filter(l=>l.med_id===med.id).length;
     const hasSchedule=S.schedules.some(s=>s.med_id===med.id&&s.days?.length>0);
-
     const card=document.createElement('div');
     card.style.cssText='background:#1a1a1a;border-radius:16px;margin-bottom:10px;display:flex;align-items:stretch;overflow:hidden';
-
-    // Left color bar
     const bar=document.createElement('div');
     bar.style.cssText=`width:4px;background:${med.color};flex-shrink:0`;
-
-    // Main content
     const body=document.createElement('div');
     body.style.cssText='flex:1;padding:14px 14px 14px 16px;display:flex;align-items:center;gap:12px;min-width:0';
-
     const textBlock=document.createElement('div'); textBlock.style.cssText='flex:1;min-width:0';
     textBlock.innerHTML=`
       <p style="font-size:16px;font-weight:700;color:#fff;margin-bottom:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${med.name}</p>
       <p style="font-size:13px;color:#666">${med.dose}${med.notes?`<span style="color:#444"> · ${med.notes}</span>`:''}${!hasSchedule?` <span style="color:#FF6B0088;font-size:11px">· no schedule</span>`:''}</p>`;
-
-    // 7-day pill
     const pill=document.createElement('div');
     pill.style.cssText=`background:${med.color}18;border-radius:10px;padding:5px 10px;text-align:center;flex-shrink:0`;
     pill.innerHTML=`<p style="font-size:15px;font-weight:800;color:${med.color};line-height:1">${last7taken}</p><p style="font-size:9px;color:${med.color};opacity:.65;font-weight:700;letter-spacing:.3px">7 DAYS</p>`;
-
-    // Delete button
-    const del=document.createElement('button');
-    del.style.cssText='background:none;border:none;font-size:16px;cursor:pointer;padding:0;flex-shrink:0;opacity:.5';
-    del.textContent='🗑';
-
     if(S.delConfirm===med.id){
       body.append(textBlock);
       const wrap=document.createElement('div'); wrap.style.cssText='display:flex;gap:6px;flex-shrink:0';
@@ -882,30 +898,41 @@ function renderMeds(){
     } else {
       const edit=document.createElement('button');
       edit.style.cssText='background:#252525;border:none;border-radius:8px;padding:5px 10px;font-size:12px;font-weight:700;color:#888;cursor:pointer;font-family:inherit;flex-shrink:0';
-      edit.textContent='Edit';
-      edit.onclick=()=>openEditMedModal(med);
+      edit.textContent='Edit'; edit.onclick=()=>openEditMedModal(med);
       const del=document.createElement('button');
       del.style.cssText='background:none;border:none;font-size:16px;cursor:pointer;padding:0;flex-shrink:0;opacity:.4';
-      del.textContent='🗑';
-      del.onclick=()=>{S.delConfirm=med.id;render();};
+      del.textContent='🗑'; del.onclick=()=>{S.delConfirm=med.id;render();};
       body.append(textBlock,pill,edit,del);
     }
-
     card.append(bar,body);
-    frag.append(card);
-  });
+    return card;
+  }));
   return frag;
 }
 
 
+function renderGroupPicker(){
+  const gp=document.getElementById('group-picker'); gp.innerHTML='';
+  GROUPS.forEach(g=>{
+    const btn=document.createElement('button');
+    const active=S.pickedGroup===g;
+    btn.style.cssText=`flex:1;padding:9px 4px;border-radius:12px;border:none;font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;background:${active?'#FF6B00':'#222'};color:${active?'#000':'#555'}`;
+    btn.textContent=g;
+    btn.onclick=()=>{S.pickedGroup=g;renderGroupPicker();};
+    gp.append(btn);
+  });
+}
+
 function openMedModal(){
   S.editMedId=null;
   S.pickedColor=PAL[0];
+  S.pickedGroup=GROUPS[0];
   document.getElementById('med-modal-title').textContent='New Medication';
   document.getElementById('med-modal-save').textContent='Add';
   document.getElementById('f-name').value='';
   document.getElementById('f-dose').value='';
   document.getElementById('f-notes').value='';
+  renderGroupPicker();
   const grid=document.getElementById('color-grid'); grid.innerHTML='';
   PAL.forEach(c=>{
     const sw=document.createElement('button'); sw.className='cswatch'+(c===S.pickedColor?' on':'');
@@ -918,11 +945,13 @@ function openMedModal(){
 function openEditMedModal(med){
   S.editMedId=med.id;
   S.pickedColor=med.color;
+  S.pickedGroup=med.group||GROUPS[0];
   document.getElementById('med-modal-title').textContent='Edit Medication';
   document.getElementById('med-modal-save').textContent='Save';
   document.getElementById('f-name').value=med.name;
   document.getElementById('f-dose').value=med.dose;
   document.getElementById('f-notes').value=med.notes||'';
+  renderGroupPicker();
   const grid=document.getElementById('color-grid'); grid.innerHTML='';
   PAL.forEach(c=>{
     const sw=document.createElement('button'); sw.className='cswatch'+(c===S.pickedColor?' on':'');
@@ -934,7 +963,7 @@ function openEditMedModal(med){
 }
 async function submitMed(){
   const name=document.getElementById('f-name').value.trim(); if(!name) return;
-  const data={name,dose:document.getElementById('f-dose').value.trim(),notes:document.getElementById('f-notes').value.trim(),color:S.pickedColor};
+  const data={name,dose:document.getElementById('f-dose').value.trim(),notes:document.getElementById('f-notes').value.trim(),color:S.pickedColor,group:S.pickedGroup};
   if(S.editMedId){
     if(!DEMO) await sb('PATCH',`medications?id=eq.${S.editMedId}`,data);
     const idx=S.meds.findIndex(m=>m.id===S.editMedId);
