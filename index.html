@@ -481,11 +481,11 @@ function initDemo() {
 async function toggleLog(medId,time,date=isoToday()){
   const ex=S.logs.find(l=>l.med_id===medId&&l.time_of_day===time&&l.date===date);
   if(ex){
-    if(!DEMO) await sb('DELETE',`intake_logs?id=eq.${ex.id}`);
+    if(!DEMO) await sb('DELETE',`meds_intake_logs?id=eq.${ex.id}`);
     S.logs=S.logs.filter(l=>l.id!==ex.id);
   } else {
     const e={med_id:medId,time_of_day:time,date,taken_at:new Date().toISOString(),id:Date.now()};
-    if(!DEMO){const r=await sb('POST','intake_logs',e);if(r?.[0])e.id=r[0].id;}
+    if(!DEMO){const r=await sb('POST','meds_intake_logs',e);if(r?.[0])e.id=r[0].id;}
     S.logs.push(e);
   }
   render();
@@ -968,18 +968,18 @@ async function submitMed(){
   const name=document.getElementById('f-name').value.trim(); if(!name) return;
   const data={name,dose:document.getElementById('f-dose').value.trim(),notes:document.getElementById('f-notes').value.trim(),color:S.pickedColor,group:S.pickedGroup};
   if(S.editMedId){
-    if(!DEMO) await sb('PATCH',`medications?id=eq.${S.editMedId}`,data);
+    if(!DEMO) await sb('PATCH',`meds_medications?id=eq.${S.editMedId}`,data);
     const idx=S.meds.findIndex(m=>m.id===S.editMedId);
     if(idx>=0) S.meds[idx]={...S.meds[idx],...data};
   } else {
     const med={...data,id:Date.now()};
-    if(!DEMO){const r=await sb('POST','medications',med);if(r?.[0])med.id=r[0].id;}
+    if(!DEMO){const r=await sb('POST','meds_medications',med);if(r?.[0])med.id=r[0].id;}
     S.meds.push(med);
   }
   closeModal('modal-med'); render();
 }
 async function deleteMed(id){
-  if(!DEMO) await sb('DELETE',`medications?id=eq.${id}`);
+  if(!DEMO) await sb('DELETE',`meds_medications?id=eq.${id}`);
   S.meds=S.meds.filter(m=>m.id!==id); S.schedules=S.schedules.filter(s=>s.med_id!==id); S.logs=S.logs.filter(l=>l.med_id!==id);
   S.delConfirm=null; render();
 }
@@ -1015,7 +1015,7 @@ function renderSchedBody(){
 async function submitSched(){
   const id=S.schedMedId;
   for(const t of TIMES){
-    if(!DEMO){await sb('DELETE',`schedules?med_id=eq.${id}&time_of_day=eq.${t}`);if(S.schedEdit[t].length)await sb('POST','schedules',{med_id:id,time_of_day:t,days:S.schedEdit[t]});}
+    if(!DEMO){await sb('DELETE',`meds_schedules?med_id=eq.${id}&time_of_day=eq.${t}`);if(S.schedEdit[t].length)await sb('POST','meds_schedules',{med_id:id,time_of_day:t,days:S.schedEdit[t]});}
     S.schedules=S.schedules.filter(s=>!(s.med_id===id&&s.time_of_day===t));
     if(S.schedEdit[t].length) S.schedules.push({id:Date.now()+Math.random(),med_id:id,time_of_day:t,days:[...S.schedEdit[t]]});
   }
@@ -1030,7 +1030,7 @@ async function init(){
   if(DEMO){document.getElementById('demo-banner').style.display='block';initDemo();}
   else{
     const ago=new Date(); ago.setDate(ago.getDate()-90);
-    const [m,s,l]=await Promise.all([sb('GET','medications?select=*&order=name'),sb('GET','schedules?select=*'),sb('GET',`intake_logs?select=*&date=gte.${isoOf(ago)}`)]);
+    const [m,s,l]=await Promise.all([sb('GET','meds_medications?select=*&order=name'),sb('GET','meds_schedules?select=*'),sb('GET',`meds_intake_logs?select=*&date=gte.${isoOf(ago)}`)]);
     if(m)S.meds=m; if(s)S.schedules=s; if(l)S.logs=l;
   }
   render();
