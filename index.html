@@ -737,13 +737,20 @@ function renderInsights(){
     tkAll+=S.logs.filter(l=>l.date===date&&sc.some(s=>s.med_id===l.med_id&&s.time_of_day===l.time_of_day)).length;
   });
   const rate=totAll>0?Math.round(tkAll/totAll*100):0;
+
+  // Streak: count consecutive fully-completed past days (excluding today)
+  // If today is also fully done, add 1 on top
   let streak=0;
-  for(let i=last7.length-1;i>=0;i--){
-    const date=last7[i],w=weekday(date),sc=S.schedules.filter(s=>s.days?.includes(w));
+  const pastDays=last7.filter(d=>d<todayStr);
+  for(let i=pastDays.length-1;i>=0;i--){
+    const date=pastDays[i],w=weekday(date),sc=S.schedules.filter(s=>s.days?.includes(w));
     if(!sc.length) continue;
     if(sc.every(s=>S.logs.some(l=>l.med_id===s.med_id&&l.time_of_day===s.time_of_day&&l.date===date))) streak++;
     else break;
   }
+  // Add today if all taken
+  const todayWd=weekday(todayStr), todaySc=S.schedules.filter(s=>s.days?.includes(todayWd));
+  if(todaySc.length>0&&todaySc.every(s=>S.logs.some(l=>l.med_id===s.med_id&&l.time_of_day===s.time_of_day&&l.date===todayStr))) streak++;
 
   const frag=document.createDocumentFragment();
   const th=document.createElement('div');
