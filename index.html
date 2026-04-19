@@ -103,6 +103,7 @@ margin-top: 8px;
 /* ── INPUTS ── */
 input.field {
 width: 100%;
+box-sizing: border-box;
 background: #222;
 border: 1px solid #333;
 border-radius: 12px;
@@ -346,7 +347,7 @@ display: none;
     <input class="field" id="f-dose" placeholder="Dosage (e.g. 400mg)">
     <input class="field" id="f-notes" placeholder="Notes (optional)">
     <p class="section-lbl" style="margin-top:4px">Start date</p>
-    <input class="field" id="f-start" type="date" style="width:100%;max-width:100%;color-scheme:dark">
+    <input class="field" id="f-start" type="date" style="box-sizing:border-box;width:100%;color-scheme:dark;-webkit-appearance:none;appearance:none">
     <p class="section-lbl">Group</p>
     <div id="group-picker" style="display:flex;gap:8px;margin-bottom:20px"></div>
     <p class="section-lbl">Color</p>
