@@ -381,6 +381,7 @@ const TCOLOR = { morning:'#FF6B00', noon:'#FF9233', evening:'#CC5500' };
 const PAL    = ['#FF6B00','#FF8C00','#FFA500','#FFB347','#E55A00','#FF4500','#CC5500','#FF7F00','#D4622A','#FF9233'];
 const GROUPS = ['Supplements','Steroids','Peptides'];
 const alpha  = arr => [...arr].sort((a,b)=>a.name.localeCompare(b.name));
+const activeMeds = () => S.meds.filter(m=>!m.archived);
 
 // Render collapsible group boxes around a list of meds
 // makeRow(med) => DOM element
@@ -441,7 +442,7 @@ function schedForDay(date) {
   S.schedules.forEach(s=>{
     if(!s.days?.includes(w)) return;
     const m=S.meds.find(x=>x.id===s.med_id);
-    if(!m) return;
+    if(!m||m.archived) return;
     if(m.start_date && date < m.start_date) return;
     r[s.time_of_day].push(m);
   });
@@ -453,7 +454,7 @@ function dayStats(date) {
   const sc=S.schedules.filter(s=>{
     if(!s.days?.includes(w)) return false;
     const m=S.meds.find(x=>x.id===s.med_id);
-    if(!m) return false;
+    if(!m||m.archived) return false;
     if(m.start_date && date < m.start_date) return false;
     return true;
   });
@@ -674,7 +675,7 @@ function renderCalendar(){
     }
     const dots=document.createElement('div'); dots.className='ddots';
     S.schedules.filter(s=>s.days?.includes(weekday(dateStr))).slice(0,4).forEach(s=>{
-      const m=S.meds.find(x=>x.id===s.med_id);
+      const m=S.meds.find(x=>x.id===s.med_id&&!x.archived);
       const t=S.logs.some(l=>l.med_id===s.med_id&&l.time_of_day===s.time_of_day&&l.date===dateStr);
       if(m){const d=document.createElement('div');d.className='ddot';d.style.background=t?(isSel?'rgba(0,0,0,.5)':m.color):(isSel?'rgba(0,0,0,.2)':'#333');dots.append(d);}
     });
@@ -794,7 +795,7 @@ function renderInsights(){
 
   const mt=document.createElement('p'); mt.style.cssText='font-size:16px;font-weight:700;margin-bottom:8px;color:#fff'; mt.textContent='Per Medication';
   frag.append(mt);
-  frag.append(renderGrouped(S.meds, med=>{
+  frag.append(renderGrouped(activeMeds(), med=>{
     let t=0,tk=0;
     last7.forEach(date=>{
       const w=weekday(date),sc=S.schedules.filter(s=>s.med_id===med.id&&s.days?.includes(w)&&(!med.start_date||date>=med.start_date));
@@ -821,10 +822,10 @@ function renderSchedules(){
   const frag=document.createDocumentFragment();
   const h1=document.createElement('h1'); h1.className='page-title'; h1.style.marginBottom='16px'; h1.textContent='Schedules';
   frag.append(h1);
-  if(!S.meds.length){frag.append(Object.assign(document.createElement('p'),{className:'empty',textContent:'Add medications under "Meds" first.'}));return frag;}
+  if(!activeMeds().length){frag.append(Object.assign(document.createElement('p'),{className:'empty',textContent:'Add medications under "Meds" first.'}));return frag;}
 
-  const planned   = alpha(S.meds.filter(m=>S.schedules.some(sc=>sc.med_id===m.id&&sc.days?.length>0)));
-  const unplanned = alpha(S.meds.filter(m=>!S.schedules.some(sc=>sc.med_id===m.id&&sc.days?.length>0)));
+  const planned   = alpha(activeMeds().filter(m=>S.schedules.some(sc=>sc.med_id===m.id&&sc.days?.length>0)));
+  const unplanned = alpha(activeMeds().filter(m=>!S.schedules.some(sc=>sc.med_id===m.id&&sc.days?.length>0)));
 
   // Category tabs
   if(!S.schedCat) S.schedCat = unplanned.length ? 'unplanned' : 'planned';
@@ -889,7 +890,7 @@ function renderMeds(){
   const ab=document.createElement('button'); ab.className='btn-orange'; ab.textContent='+ New'; ab.onclick=openMedModal;
   hdr.append(h1,ab); frag.append(hdr);
 
-  if(!S.meds.length){
+  if(!activeMeds().length){
     const empty=document.createElement('div');
     empty.style.cssText='text-align:center;padding:48px 24px;background:#1a1a1a;border-radius:20px';
     empty.innerHTML=`<div style="font-size:48px;margin-bottom:16px">💊</div><p style="font-size:17px;font-weight:700;color:#fff;margin-bottom:8px">No medications</p><p style="font-size:14px;color:#555">Tap "+ New" to add your first medication.</p>`;
@@ -897,7 +898,7 @@ function renderMeds(){
     return frag;
   }
 
-  frag.append(renderGrouped(S.meds, med => {
+  frag.append(renderGrouped(activeMeds(), med => {
     const last7taken=S.logs.filter(l=>l.med_id===med.id).length;
     const hasSchedule=S.schedules.some(s=>s.med_id===med.id&&s.days?.length>0);
     const card=document.createElement('div');
@@ -1001,8 +1002,16 @@ async function submitMed(){
   closeModal('modal-med'); render();
 }
 async function deleteMed(id){
-  if(!DEMO) await sb('DELETE',`meds_medications?id=eq.${id}`);
-  S.meds=S.meds.filter(m=>m.id!==id); S.schedules=S.schedules.filter(s=>s.med_id!==id); S.logs=S.logs.filter(l=>l.med_id!==id);
+  if(!DEMO){
+    // Archive the med — keeps logs intact for history
+    await sb('PATCH',`meds_medications?id=eq.${id}`,{archived:true});
+    // Actually delete schedules so it disappears from Today
+    await sb('DELETE',`meds_schedules?med_id=eq.${id}`);
+  }
+  // Mark as archived in local state, remove schedules
+  const idx=S.meds.findIndex(m=>m.id===id);
+  if(idx>=0) S.meds[idx].archived=true;
+  S.schedules=S.schedules.filter(s=>s.med_id!==id);
   S.delConfirm=null; render();
 }
 
