@@ -345,7 +345,8 @@ display: none;
     <input class="field" id="f-name" placeholder="Name (e.g. Ibuprofen)">
     <input class="field" id="f-dose" placeholder="Dosage (e.g. 400mg)">
     <input class="field" id="f-notes" placeholder="Notes (optional)">
-    <input class="field" id="f-start" type="date" placeholder="Start date">
+    <p class="section-lbl" style="margin-top:4px">Start date</p>
+    <input class="field" id="f-start" type="date" style="width:100%;max-width:100%;color-scheme:dark">
     <p class="section-lbl">Group</p>
     <div id="group-picker" style="display:flex;gap:8px;margin-bottom:20px"></div>
     <p class="section-lbl">Color</p>
@@ -954,6 +955,7 @@ function openMedModal(){
   document.getElementById('f-dose').value='';
   document.getElementById('f-notes').value='';
   document.getElementById('f-start').value=isoToday();
+  renderGroupPicker();
   const grid=document.getElementById('color-grid'); grid.innerHTML='';
   PAL.forEach(c=>{
     const sw=document.createElement('button'); sw.className='cswatch'+(c===S.pickedColor?' on':'');
@@ -972,6 +974,7 @@ function openEditMedModal(med){
   document.getElementById('f-name').value=med.name;
   document.getElementById('f-dose').value=med.dose;
   document.getElementById('f-notes').value=med.notes||'';
+  document.getElementById('f-start').value=med.start_date||isoToday();
   renderGroupPicker();
   const grid=document.getElementById('color-grid'); grid.innerHTML='';
   PAL.forEach(c=>{
@@ -984,7 +987,7 @@ function openEditMedModal(med){
 }
 async function submitMed(){
   const name=document.getElementById('f-name').value.trim(); if(!name) return;
-  const data={name,dose:document.getElementById('f-dose').value.trim(),notes:document.getElementById('f-notes').value.trim(),color:S.pickedColor,group:S.pickedGroup};
+  const data={name,dose:document.getElementById('f-dose').value.trim(),notes:document.getElementById('f-notes').value.trim(),color:S.pickedColor,group:S.pickedGroup,start_date:document.getElementById('f-start').value||isoToday()};
   if(S.editMedId){
     if(!DEMO) await sb('PATCH',`meds_medications?id=eq.${S.editMedId}`,data);
     const idx=S.meds.findIndex(m=>m.id===S.editMedId);
