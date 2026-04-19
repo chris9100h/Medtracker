@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -7,60 +8,60 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="theme-color" content="#0D0D0D">
 <title>MedTracker</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💊</text></svg>">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cdefs%3E%3CclipPath id='cl'%3E%3Cpolygon points='0,0 115,0 85,200 0,200'/%3E%3C/clipPath%3E%3CclipPath id='cr'%3E%3Cpolygon points='115,0 200,0 200,200 85,200'/%3E%3C/clipPath%3E%3C/defs%3E%3Crect x='50' y='70' width='100' height='60' rx='30' fill='%23CC2200' transform='rotate(-40 100 100)' clip-path='url(%23cl)'/%3E%3Crect x='50' y='70' width='100' height='60' rx='30' fill='%23E8B89A' transform='rotate(-40 100 100)' clip-path='url(%23cr)'/%3E%3Cellipse cx='82' cy='78' rx='9' ry='5' fill='rgba(255,255,255,0.4)' transform='rotate(-40 100 100)'/%3E%3C/svg%3E">
 <style>
 
-* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+- { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 
 html { background: #0D0D0D; }
 body {
-  background: #0D0D0D;
-  color: #fff;
-  font-family: -apple-system, 'Helvetica Neue', sans-serif;
-  -webkit-font-smoothing: antialiased;
-  min-height: 100vh;
-  min-height: 100dvh;
+background: #0D0D0D;
+color: #fff;
+font-family: -apple-system, ‘Helvetica Neue’, sans-serif;
+-webkit-font-smoothing: antialiased;
+min-height: 100vh;
+min-height: 100dvh;
 }
 
 /* ── LAYOUT ── */
 #view {
-  max-width: 430px;
-  margin: 0 auto;
-  padding: 24px 16px 100px;
-  min-height: 100dvh;
+max-width: 430px;
+margin: 0 auto;
+padding: 24px 16px 100px;
+min-height: 100dvh;
 }
 
 /* ── NAV ── */
 #nav {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: calc(64px + env(safe-area-inset-bottom, 0px));
-  background: #111;
-  border-top: 1px solid #2a2a2a;
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  z-index: 999;
-  padding-top: 8px;
+position: fixed;
+bottom: 0;
+left: 0;
+right: 0;
+height: calc(64px + env(safe-area-inset-bottom, 0px));
+background: #111;
+border-top: 1px solid #2a2a2a;
+display: flex;
+align-items: flex-start;
+justify-content: center;
+z-index: 999;
+padding-top: 8px;
 }
 .nav-inner {
-  display: flex;
-  width: 100%;
-  max-width: 430px;
+display: flex;
+width: 100%;
+max-width: 430px;
 }
 .nav-btn {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 3px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 2px 0;
-  font-family: inherit;
+flex: 1;
+display: flex;
+flex-direction: column;
+align-items: center;
+gap: 3px;
+background: none;
+border: none;
+cursor: pointer;
+padding: 2px 0;
+font-family: inherit;
 }
 .nav-btn .ni { font-size: 22px; line-height: 1; }
 .nav-btn .nl { font-size: 10px; color: #555; font-weight: 500; }
@@ -75,44 +76,44 @@ body {
 
 /* ── BUTTONS ── */
 .btn-orange {
-  background: #FF6B00;
-  color: #000;
-  border: none;
-  border-radius: 14px;
-  padding: 12px 18px;
-  font-size: 15px;
-  font-weight: 700;
-  font-family: inherit;
-  cursor: pointer;
+background: #FF6B00;
+color: #000;
+border: none;
+border-radius: 14px;
+padding: 12px 18px;
+font-size: 15px;
+font-weight: 700;
+font-family: inherit;
+cursor: pointer;
 }
 .btn-save {
-  width: 100%;
-  background: #FF6B00;
-  color: #000;
-  border: none;
-  border-radius: 16px;
-  padding: 16px;
-  font-size: 17px;
-  font-weight: 700;
-  font-family: inherit;
-  cursor: pointer;
-  margin-top: 8px;
+width: 100%;
+background: #FF6B00;
+color: #000;
+border: none;
+border-radius: 16px;
+padding: 16px;
+font-size: 17px;
+font-weight: 700;
+font-family: inherit;
+cursor: pointer;
+margin-top: 8px;
 }
 
 /* ── INPUTS ── */
 input.field {
-  width: 100%;
-  background: #222;
-  border: 1px solid #333;
-  border-radius: 12px;
-  padding: 14px 16px;
-  font-size: 16px;
-  color: #fff;
-  font-family: inherit;
-  outline: none;
-  margin-bottom: 10px;
-  -webkit-appearance: none;
-  display: block;
+width: 100%;
+background: #222;
+border: 1px solid #333;
+border-radius: 12px;
+padding: 14px 16px;
+font-size: 16px;
+color: #fff;
+font-family: inherit;
+outline: none;
+margin-bottom: 10px;
+-webkit-appearance: none;
+display: block;
 }
 input.field::placeholder { color: #555; }
 
@@ -120,15 +121,15 @@ input.field::placeholder { color: #555; }
 .today-hdr { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
 .time-block { background: #1a1a1a; border-radius: 20px; margin-bottom: 14px; overflow: hidden; }
 .time-hdr-btn {
-  width: 100%;
-  background: none;
-  border: none;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 18px;
-  cursor: pointer;
-  font-family: inherit;
+width: 100%;
+background: none;
+border: none;
+display: flex;
+align-items: center;
+justify-content: space-between;
+padding: 16px 18px;
+cursor: pointer;
+font-family: inherit;
 }
 .time-left { display: flex; align-items: center; gap: 10px; }
 .time-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; display: inline-block; }
@@ -136,31 +137,31 @@ input.field::placeholder { color: #555; }
 .time-badge { background: #252525; border-radius: 10px; padding: 2px 8px; font-size: 12px; color: #666; font-weight: 600; }
 .time-right { display: flex; align-items: center; gap: 8px; }
 .take-all {
-  background: #FF6B00;
-  color: #000;
-  border: none;
-  border-radius: 10px;
-  padding: 6px 12px;
-  font-size: 13px;
-  font-weight: 700;
-  font-family: inherit;
-  cursor: pointer;
+background: #FF6B00;
+color: #000;
+border: none;
+border-radius: 10px;
+padding: 6px 12px;
+font-size: 13px;
+font-weight: 700;
+font-family: inherit;
+cursor: pointer;
 }
 .take-all.done { background: #2a2a2a; color: #FF6B00; }
 .chevron { font-size: 18px; color: #444; transition: transform .2s; display: inline-block; }
 .med-list { padding: 0 12px 12px; }
 .med-row {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 8px;
-  background: none;
-  border: none;
-  border-bottom: 1px solid #222;
-  cursor: pointer;
-  font-family: inherit;
-  text-align: left;
+width: 100%;
+display: flex;
+align-items: center;
+gap: 12px;
+padding: 12px 8px;
+background: none;
+border: none;
+border-bottom: 1px solid #222;
+cursor: pointer;
+font-family: inherit;
+text-align: left;
 }
 .med-row:last-child { border-bottom: none; }
 .med-row.taken { opacity: 0.4; }
@@ -171,7 +172,7 @@ input.field::placeholder { color: #555; }
 .med-ds { font-size: 13px; color: #666; }
 .chk { width: 26px; height: 26px; border-radius: 50%; border: 2px solid #333; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .chk.on { background: #FF6B00; border-color: #FF6B00; }
-.chk.on::after { content: '✓'; color: #000; font-size: 13px; font-weight: 800; }
+.chk.on::after { content: ‘✓’; color: #000; font-size: 13px; font-weight: 800; }
 
 /* ── PROGRESS RING ── */
 .ring-track { fill: none; stroke: #2a2a2a; stroke-width: 4; }
@@ -184,18 +185,18 @@ input.field::placeholder { color: #555; }
 .day-strip { display: flex; gap: 6px; overflow-x: auto; padding: 0 16px 4px; margin: 0 -16px 20px; scrollbar-width: none; }
 .day-strip::-webkit-scrollbar { display: none; }
 .day-box {
-  flex: 1;
-  min-width: 44px;
-  background: #1a1a1a;
-  border: 2px solid transparent;
-  border-radius: 18px;
-  padding: 12px 0 10px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 5px;
-  cursor: pointer;
-  font-family: inherit;
+flex: 1;
+min-width: 44px;
+background: #1a1a1a;
+border: 2px solid transparent;
+border-radius: 18px;
+padding: 12px 0 10px;
+display: flex;
+flex-direction: column;
+align-items: center;
+gap: 5px;
+cursor: pointer;
+font-family: inherit;
 }
 .day-box.today { border-color: #FF6B00; }
 .day-box.sel   { background: #FF6B00; }
@@ -242,31 +243,31 @@ input.field::placeholder { color: #555; }
 
 /* ── SCHEDULES ── */
 .sched-item {
-  background: #1a1a1a;
-  border-radius: 18px;
-  padding: 16px;
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  margin-bottom: 12px;
-  cursor: pointer;
-  border: none;
-  width: 100%;
-  text-align: left;
-  font-family: inherit;
+background: #1a1a1a;
+border-radius: 18px;
+padding: 16px;
+display: flex;
+align-items: flex-start;
+gap: 12px;
+margin-bottom: 12px;
+cursor: pointer;
+border: none;
+width: 100%;
+text-align: left;
+font-family: inherit;
 }
 .badge { font-size: 12px; padding: 4px 10px; border-radius: 10px; font-weight: 600; display: inline-block; margin: 2px; }
 .day-grid { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
 .day-btn {
-  width: 38px; height: 38px;
-  border-radius: 12px;
-  border: 2px solid #333;
-  background: #222;
-  font-size: 12px;
-  font-weight: 600;
-  color: #666;
-  cursor: pointer;
-  font-family: inherit;
+width: 38px; height: 38px;
+border-radius: 12px;
+border: 2px solid #333;
+background: #222;
+font-size: 12px;
+font-weight: 600;
+color: #666;
+cursor: pointer;
+font-family: inherit;
 }
 .day-btn.on { color: #000; border-color: transparent; }
 .all-btn { background: none; border: none; color: #FF6B00; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit; padding: 0; }
@@ -277,54 +278,54 @@ input.field::placeholder { color: #555; }
 .del-btn  { background: none; border: none; font-size: 20px; cursor: pointer; padding: 8px; margin-left: auto; }
 .color-grid { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 24px; }
 .cswatch {
-  width: 36px; height: 36px; border-radius: 50%;
-  border: 3px solid transparent;
-  cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 15px; font-weight: 800; color: #000;
-  font-family: inherit;
+width: 36px; height: 36px; border-radius: 50%;
+border: 3px solid transparent;
+cursor: pointer;
+display: flex; align-items: center; justify-content: center;
+font-size: 15px; font-weight: 800; color: #000;
+font-family: inherit;
 }
 .cswatch.on { border-color: #fff; }
 
 /* ── MODAL ── */
 .modal-bg {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,.75);
-  z-index: 9999;
-  align-items: flex-end;
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+display: none;
+position: fixed;
+inset: 0;
+background: rgba(0,0,0,.75);
+z-index: 9999;
+align-items: flex-end;
+backdrop-filter: blur(6px);
+-webkit-backdrop-filter: blur(6px);
 }
 .modal-bg.open { display: flex; }
 .modal-sheet {
-  background: #161616;
-  border-radius: 28px 28px 0 0;
-  padding: 28px 24px;
-  padding-bottom: calc(32px + env(safe-area-inset-bottom, 0px));
-  width: 100%;
-  max-height: 85dvh;
-  overflow-y: auto;
+background: #161616;
+border-radius: 28px 28px 0 0;
+padding: 28px 24px;
+padding-bottom: calc(32px + env(safe-area-inset-bottom, 0px));
+width: 100%;
+max-height: 85dvh;
+overflow-y: auto;
 }
 .modal-sheet::-webkit-scrollbar { display: none; }
 .modal-hdr   { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
 .modal-title { flex: 1; font-size: 22px; font-weight: 800; color: #fff; }
 .close-btn {
-  background: #222; border: none;
-  width: 32px; height: 32px; border-radius: 50%;
-  font-size: 16px; color: #888; cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  font-family: inherit;
+background: #222; border: none;
+width: 32px; height: 32px; border-radius: 50%;
+font-size: 16px; color: #888; cursor: pointer;
+display: flex; align-items: center; justify-content: center;
+font-family: inherit;
 }
 .section-lbl { font-size: 14px; font-weight: 600; color: #666; margin-bottom: 10px; }
 
 /* ── DEMO BANNER ── */
 #demo-banner {
-  background: #FF6B00; color: #000;
-  text-align: center; padding: 10px 16px;
-  font-size: 13px; font-weight: 700;
-  display: none;
+background: #FF6B00; color: #000;
+text-align: center; padding: 10px 16px;
+font-size: 13px; font-weight: 700;
+display: none;
 }
 
 </style>
@@ -344,6 +345,7 @@ input.field::placeholder { color: #555; }
     <input class="field" id="f-name" placeholder="Name (e.g. Ibuprofen)">
     <input class="field" id="f-dose" placeholder="Dosage (e.g. 400mg)">
     <input class="field" id="f-notes" placeholder="Notes (optional)">
+    <input class="field" id="f-start" type="date" placeholder="Start date">
     <p class="section-lbl">Group</p>
     <div id="group-picker" style="display:flex;gap:8px;margin-bottom:20px"></div>
     <p class="section-lbl">Color</p>
@@ -437,14 +439,22 @@ function schedForDay(date) {
   S.schedules.forEach(s=>{
     if(!s.days?.includes(w)) return;
     const m=S.meds.find(x=>x.id===s.med_id);
-    if(m) r[s.time_of_day].push(m);
+    if(!m) return;
+    if(m.start_date && date < m.start_date) return;
+    r[s.time_of_day].push(m);
   });
   r.morning=alpha(r.morning); r.noon=alpha(r.noon); r.evening=alpha(r.evening);
   return r;
 }
 function dayStats(date) {
   const w=weekday(date);
-  const sc=S.schedules.filter(s=>s.days?.includes(w));
+  const sc=S.schedules.filter(s=>{
+    if(!s.days?.includes(w)) return false;
+    const m=S.meds.find(x=>x.id===s.med_id);
+    if(!m) return false;
+    if(m.start_date && date < m.start_date) return false;
+    return true;
+  });
   const tk=sc.filter(s=>S.logs.some(l=>l.med_id===s.med_id&&l.time_of_day===s.time_of_day&&l.date===date)).length;
   return {total:sc.length, taken:tk};
 }
@@ -462,9 +472,9 @@ async function sb(method, path, body) {
 
 function initDemo() {
   S.meds=[
-    {id:1,name:'Ibuprofen',dose:'400mg',color:'#FF6B00',notes:'Take with food'},
-    {id:2,name:'Vitamin D',dose:'1000 IU',color:'#FFB347',notes:''},
-    {id:3,name:'Magnesium',dose:'300mg',color:'#CC5500',notes:'Evening'},
+    {id:1,name:'Ibuprofen',dose:'400mg',color:'#FF6B00',notes:'Take with food',start_date:'2026-01-01'},
+    {id:2,name:'Vitamin D',dose:'1000 IU',color:'#FFB347',notes:'',start_date:'2026-01-01'},
+    {id:3,name:'Magnesium',dose:'300mg',color:'#CC5500',notes:'Evening',start_date:'2026-01-01'},
   ];
   S.schedules=[
     {id:1,med_id:1,days:[0,1,2,3,4,5,6],time_of_day:'morning'},
@@ -785,7 +795,7 @@ function renderInsights(){
   frag.append(renderGrouped(S.meds, med=>{
     let t=0,tk=0;
     last7.forEach(date=>{
-      const w=weekday(date),sc=S.schedules.filter(s=>s.med_id===med.id&&s.days?.includes(w));
+      const w=weekday(date),sc=S.schedules.filter(s=>s.med_id===med.id&&s.days?.includes(w)&&(!med.start_date||date>=med.start_date));
       t+=sc.length; tk+=sc.filter(s=>S.logs.some(l=>l.med_id===med.id&&l.time_of_day===s.time_of_day&&l.date===date)).length;
     });
     const r=t?Math.round(tk/t*100):0, col=r>=80?'#FF6B00':r>=50?'#FF9233':'#3D1200';
@@ -943,7 +953,7 @@ function openMedModal(){
   document.getElementById('f-name').value='';
   document.getElementById('f-dose').value='';
   document.getElementById('f-notes').value='';
-  renderGroupPicker();
+  document.getElementById('f-start').value=isoToday();
   const grid=document.getElementById('color-grid'); grid.innerHTML='';
   PAL.forEach(c=>{
     const sw=document.createElement('button'); sw.className='cswatch'+(c===S.pickedColor?' on':'');
@@ -1045,5 +1055,6 @@ async function init(){
 }
 init();
 </script>
+
 </body>
 </html>
