@@ -380,6 +380,7 @@ const PAL    = ['#FF6B00','#FF8C00','#FFA500','#FFB347','#E55A00','#FF4500','#CC
 const GROUPS = ['Supplements','Steroids','Peptides'];
 const alpha  = arr => [...arr].sort((a,b)=>a.name.localeCompare(b.name));
 const activeMeds = () => S.meds.filter(m=>!m.archived);
+const esc = s => s==null?'':String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
 // Render collapsible group boxes around a list of meds
 // makeRow(med) => DOM element
@@ -440,8 +441,8 @@ const S = {
   delConfirm: null, editMedId: null,
 };
 
-function isoToday() { return new Date().toISOString().split('T')[0]; }
-function isoOf(d)   { return d.toISOString().split('T')[0]; }
+function isoToday() { const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+function isoOf(d)   { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 function weekday(s) { return (new Date(s+'T12:00:00').getDay()+6)%7; }
 function isTaken(medId, time, date) { return S.logs.some(l=>l.med_id===medId&&l.time_of_day===time&&l.date===date); }
 
@@ -455,6 +456,13 @@ function schedForDay(date) {
     if(m.start_date && date < m.start_date) return;
     r[s.time_of_day].push(m);
   });
+  if(isPast){
+    S.logs.filter(l=>l.date===date).forEach(l=>{
+      const m=S.meds.find(x=>x.id===l.med_id);
+      if(!m||!r[l.time_of_day]) return;
+      if(!r[l.time_of_day].some(x=>x.id===m.id)) r[l.time_of_day].push(m);
+    });
+  }
   r.morning=alpha(r.morning); r.noon=alpha(r.noon); r.evening=alpha(r.evening);
   return r;
 }
@@ -469,6 +477,10 @@ function dayStats(date) {
     return true;
   });
   const tk=sc.filter(s=>S.logs.some(l=>l.med_id===s.med_id&&l.time_of_day===s.time_of_day&&l.date===date)).length;
+  if(isPast){
+    const extra=S.logs.filter(l=>l.date===date&&!sc.some(s=>s.med_id===l.med_id&&s.time_of_day===l.time_of_day));
+    return {total:sc.length+extra.length, taken:tk+extra.length};
+  }
   return {total:sc.length, taken:tk};
 }
 
@@ -644,8 +656,8 @@ function renderToday(){
           row.innerHTML=`
             <div class="dot" style="background:${med.color}"></div>
             <div class="med-info">
-              <span class="med-nm${tk?' strike':''}">${med.name}</span>
-              ${dose?`<span class="med-ds">${dose}</span>`:''}
+              <span class="med-nm${tk?' strike':''}">${esc(med.name)}</span>
+              ${dose?`<span class="med-ds">${esc(dose)}</span>`:''}
             </div>
             <div class="chk${tk?' on':''}"></div>`;
           row.onclick=()=>toggleLog(med.id,time);
@@ -740,8 +752,8 @@ function renderCalendar(){
         row.innerHTML=`
           <div class="dot" style="background:${med.color}"></div>
           <div style="flex:1">
-            <span style="font-size:15px;font-weight:600;color:${tk?'#666':'#fff'};text-decoration:${tk?'line-through':'none'}">${med.name}</span>
-            ${dose?`<span style="font-size:12px;color:#444;margin-left:8px">${dose}</span>`:''}
+            <span style="font-size:15px;font-weight:600;color:${tk?'#666':'#fff'};text-decoration:${tk?'line-through':'none'}">${esc(med.name)}</span>
+            ${dose?`<span style="font-size:12px;color:#444;margin-left:8px">${esc(dose)}</span>`:''}
           </div>
           <div class="dt-status ${sc2}">${icon}</div>`;
         if(!isFut) row.onclick=()=>toggleLog(med.id,time,selStr);
@@ -766,11 +778,7 @@ function renderInsights(){
   const last7=Array.from({length:7},(_,i)=>{const d=new Date(today);d.setDate(today.getDate()-(6-i));return isoOf(d);});
 
   let totAll=0,tkAll=0;
-  last7.forEach(date=>{
-    const w=weekday(date),sc=S.schedules.filter(s=>s.days?.includes(w));
-    totAll+=sc.length;
-    tkAll+=S.logs.filter(l=>l.date===date&&sc.some(s=>s.med_id===l.med_id&&s.time_of_day===l.time_of_day)).length;
-  });
+  last7.forEach(date=>{const {total,taken}=dayStats(date);totAll+=total;tkAll+=taken;});
   const rate=totAll>0?Math.round(tkAll/totAll*100):0;
 
   // Streak: go back as far as earliest log exists
@@ -780,21 +788,14 @@ function renderInsights(){
   for(let d=1; d<=maxDays; d++){
     const dt=new Date(today); dt.setDate(today.getDate()-d);
     const date=isoOf(dt);
-    const w=weekday(date);
-    const sc=S.schedules.filter(s=>{
-      if(!s.days?.includes(w)) return false;
-      const m=S.meds.find(x=>x.id===s.med_id);
-      if(!m||m.archived) return false;
-      if(m.start_date && date < m.start_date) return false;
-      return true;
-    });
-    if(!sc.length) continue;
-    if(sc.every(s=>S.logs.some(l=>l.med_id===s.med_id&&l.time_of_day===s.time_of_day&&l.date===date))) streak++;
+    const {total,taken}=dayStats(date);
+    if(!total) continue;
+    if(taken===total) streak++;
     else break;
   }
   // Add today if all taken
-  const todayWd=weekday(todayStr), todaySc=S.schedules.filter(s=>s.days?.includes(todayWd));
-  if(todaySc.length>0&&todaySc.every(s=>S.logs.some(l=>l.med_id===s.med_id&&l.time_of_day===s.time_of_day&&l.date===todayStr))) streak++;
+  const {total:todayTot,taken:todayTk}=dayStats(todayStr);
+  if(todayTot>0&&todayTk===todayTot) streak++;
 
   const frag=document.createDocumentFragment();
   const th=document.createElement('div');
@@ -812,9 +813,9 @@ function renderInsights(){
   bw.innerHTML='<p class="bar-title">Mon – Sun</p>';
   const bars=document.createElement('div'); bars.className='bars';
   week7.forEach((date)=>{
-    const w=weekday(date),sc=S.schedules.filter(s=>s.days?.includes(w));
     const isFuture=date>todayStr;
-    const r=(!isFuture&&sc.length)?Math.round(S.logs.filter(l=>l.date===date&&sc.some(s=>s.med_id===l.med_id&&s.time_of_day===l.time_of_day)).length/sc.length*100):0;
+    const {total:bTot,taken:bTk}=dayStats(date);
+    const r=(!isFuture&&bTot)?Math.round(bTk/bTot*100):0;
     const col=isFuture?'#2a2a2a':r>=80?'#FF6B00':r>=50?'#FF9233':'#3D1200';
     const isToday=date===todayStr;
     const bc=document.createElement('div'); bc.className='bar-col';
@@ -837,7 +838,7 @@ function renderInsights(){
       <div class="dot" style="background:${med.color};width:14px;height:14px"></div>
       <div style="flex:1">
         <div style="display:flex;justify-content:space-between;margin-bottom:6px">
-          <span style="font-size:15px;font-weight:600;color:#fff">${med.name}</span>
+          <span style="font-size:15px;font-weight:600;color:#fff">${esc(med.name)}</span>
           <span style="font-size:15px;font-weight:700;color:${col}">${r}%</span>
         </div>
         <div class="prog"><div class="prog-fill" style="width:${r}%;background:${med.color}"></div></div>
@@ -888,7 +889,7 @@ function renderSchedules(){
       const s=S.schedules.find(sc=>sc.med_id===med.id&&sc.time_of_day===t);
       if(!s||!s.days?.length) return '';
       const lbl=s.days.length===7?'Daily':s.days.map(d=>DAYS[d]).join(', ');
-      const doseStr=s.dose?` ${s.dose} ·`:' ';
+      const doseStr=s.dose?` ${esc(s.dose)} ·`:' ';
       return `${TICON[t]}${doseStr}${lbl}`;
     }).filter(Boolean).join('  ·  ');
     const card=document.createElement('div');
@@ -900,7 +901,7 @@ function renderSchedules(){
     body.style.cssText='flex:1;padding:14px 14px 14px 16px;display:flex;align-items:center;gap:12px;min-width:0';
     const textBlock=document.createElement('div'); textBlock.style.cssText='flex:1;min-width:0';
     textBlock.innerHTML=`
-      <p style="font-size:16px;font-weight:700;color:#fff;margin-bottom:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${med.name}</p>
+      <p style="font-size:16px;font-weight:700;color:#fff;margin-bottom:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(med.name)}</p>
       <p style="font-size:13px;color:#666">${badges||'<span style="color:#444">No schedule set</span>'}</p>`;
     const arrow=document.createElement('span');
     arrow.style.cssText='font-size:18px;color:#333;flex-shrink:0';
@@ -930,7 +931,8 @@ function renderMeds(){
   }
 
   frag.append(renderGrouped(activeMeds(), med => {
-    const last7taken=S.logs.filter(l=>l.med_id===med.id).length;
+    const since=new Date(); since.setDate(since.getDate()-6); const sinceStr=isoOf(since);
+    const last7taken=S.logs.filter(l=>l.med_id===med.id&&l.date>=sinceStr).length;
     const hasSchedule=S.schedules.some(s=>s.med_id===med.id&&s.days?.length>0);
     const card=document.createElement('div');
     card.style.cssText='background:#1a1a1a;border-radius:16px;margin-bottom:10px;display:flex;align-items:stretch;overflow:hidden';
@@ -940,9 +942,9 @@ function renderMeds(){
     body.style.cssText='flex:1;padding:14px 14px 14px 16px;display:flex;align-items:center;gap:12px;min-width:0';
     const textBlock=document.createElement('div'); textBlock.style.cssText='flex:1;min-width:0';
     const timeIcons=TIMES.filter(t=>S.schedules.some(s=>s.med_id===med.id&&s.time_of_day===t&&s.days?.length)).map(t=>TICON[t]).join(' ');
-    const infoLine=[timeIcons,med.notes].filter(Boolean).join(' · ');
+    const infoLine=[timeIcons,med.notes?esc(med.notes):null].filter(Boolean).join(' · ');
     textBlock.innerHTML=`
-      <p style="font-size:16px;font-weight:700;color:#fff;margin-bottom:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${med.name}</p>
+      <p style="font-size:16px;font-weight:700;color:#fff;margin-bottom:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(med.name)}</p>
       <p style="font-size:13px;color:#666">${infoLine||''}${!hasSchedule?` <span style="color:#FF6B0088;font-size:11px">· no schedule</span>`:''}</p>`;
     const pill=document.createElement('div');
     pill.style.cssText=`background:${med.color}18;border-radius:10px;padding:5px 10px;text-align:center;flex-shrink:0`;
@@ -1094,6 +1096,11 @@ async function init(){
   else{
     const [m,s,l]=await Promise.all([sb('GET','meds_medications?select=*&order=name'),sb('GET','meds_schedules?select=*'),sb('GET','meds_intake_logs?select=*&order=date')]);
     if(m)S.meds=m; if(s)S.schedules=s; if(l)S.logs=l;
+    if(!m){
+      const b=document.getElementById('demo-banner');
+      b.textContent='⚠️ Could not connect to database. Check your internet connection.';
+      b.style.cssText='display:block;background:#CC2200;color:#fff;text-align:center;padding:10px 16px;font-size:13px;font-weight:700';
+    }
   }
   render();
 }
