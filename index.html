@@ -822,6 +822,7 @@ function renderInsights(){
   const bars=document.createElement('div'); bars.className='bars';
   week7.forEach((date)=>{
     const isFuture=date>todayStr;
+    const w=weekday(date);
     const {total:bTot,taken:bTk}=dayStats(date);
     const r=(!isFuture&&bTot)?Math.round(bTk/bTot*100):0;
     const col=isFuture?'#2a2a2a':r>=80?'#FF6B00':r>=50?'#FF9233':'#3D1200';
