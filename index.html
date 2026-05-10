@@ -514,15 +514,23 @@ function initDemo() {
   }
 }
 
+const _inFlight=new Set();
 async function toggleLog(medId,time,date=isoToday()){
-  const ex=S.logs.find(l=>l.med_id===medId&&l.time_of_day===time&&l.date===date);
-  if(ex){
-    if(!DEMO) await sb('DELETE',`meds_intake_logs?id=eq.${ex.id}`);
-    S.logs=S.logs.filter(l=>l.id!==ex.id);
-  } else {
-    const e={med_id:medId,time_of_day:time,date,taken_at:new Date().toISOString(),id:Date.now()};
-    if(!DEMO){const r=await sb('POST','meds_intake_logs',e);if(r?.[0])e.id=r[0].id;}
-    S.logs.push(e);
+  const key=`${medId}-${time}-${date}`;
+  if(_inFlight.has(key)) return;
+  _inFlight.add(key);
+  try{
+    const ex=S.logs.find(l=>l.med_id===medId&&l.time_of_day===time&&l.date===date);
+    if(ex){
+      if(!DEMO) await sb('DELETE',`meds_intake_logs?id=eq.${ex.id}`);
+      S.logs=S.logs.filter(l=>l.id!==ex.id);
+    } else {
+      const e={med_id:medId,time_of_day:time,date,taken_at:new Date().toISOString(),id:Date.now()};
+      if(!DEMO){const r=await sb('POST','meds_intake_logs',e);if(r?.[0])e.id=r[0].id;}
+      S.logs.push(e);
+    }
+  } finally {
+    _inFlight.delete(key);
   }
   render();
 }
@@ -829,8 +837,11 @@ function renderInsights(){
   frag.append(renderGrouped(activeMeds(), med=>{
     let t=0,tk=0;
     last7.forEach(date=>{
-      const w=weekday(date),sc=S.schedules.filter(s=>s.med_id===med.id&&s.days?.includes(w)&&(!med.start_date||date>=med.start_date));
+      const isPast=date<isoToday();
+      const w=weekday(date);
+      const sc=S.schedules.filter(s=>s.med_id===med.id&&s.days?.includes(w)&&(!med.start_date||date>=med.start_date));
       t+=sc.length; tk+=sc.filter(s=>S.logs.some(l=>l.med_id===med.id&&l.time_of_day===s.time_of_day&&l.date===date)).length;
+      if(isPast){const extra=S.logs.filter(l=>l.med_id===med.id&&l.date===date&&!sc.some(s=>s.time_of_day===l.time_of_day));t+=extra.length;tk+=extra.length;}
     });
     const r=t?Math.round(tk/t*100):0, col=r>=80?'#FF6B00':r>=50?'#FF9233':'#3D1200';
     const mc=document.createElement('div'); mc.className='ms-card';
@@ -1092,6 +1103,7 @@ function closeModal(id){document.getElementById(id).classList.remove('open');}
 document.querySelectorAll('.modal-bg').forEach(el=>el.addEventListener('click',e=>{if(e.target===el)el.classList.remove('open');}));
 
 async function init(){
+  document.getElementById('view').innerHTML='<p style="text-align:center;padding:80px 24px;color:#555;font-size:15px;font-weight:600">Loading…</p>';
   if(DEMO){document.getElementById('demo-banner').style.display='block';initDemo();}
   else{
     const [m,s,l]=await Promise.all([sb('GET','meds_medications?select=*&order=name'),sb('GET','meds_schedules?select=*'),sb('GET','meds_intake_logs?select=*&order=date')]);
