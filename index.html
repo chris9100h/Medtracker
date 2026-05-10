@@ -343,7 +343,6 @@ input.field::placeholder { color: #555; }
       <button class="close-btn" onclick="closeModal('modal-med')">✕</button>
     </div>
     <input class="field" id="f-name" placeholder="Name (e.g. Ibuprofen)">
-    <input class="field" id="f-dose" placeholder="Dosage (e.g. 400mg)">
     <input class="field" id="f-notes" placeholder="Notes (optional)">
     <p class="section-lbl" style="margin-top:4px">Start date</p>
     <input class="field" id="f-start" type="date" style="box-sizing:border-box;width:100%;color-scheme:dark;-webkit-appearance:none;appearance:none">
@@ -489,9 +488,9 @@ function initDemo() {
     {id:3,name:'Magnesium',dose:'300mg',color:'#CC5500',notes:'Evening',start_date:'2026-01-01'},
   ];
   S.schedules=[
-    {id:1,med_id:1,days:[0,1,2,3,4,5,6],time_of_day:'morning'},
-    {id:2,med_id:2,days:[0,1,2,3,4,5,6],time_of_day:'morning'},
-    {id:3,med_id:3,days:[0,1,2,3,4,5,6],time_of_day:'evening'},
+    {id:1,med_id:1,days:[0,1,2,3,4,5,6],time_of_day:'morning',dose:'400mg'},
+    {id:2,med_id:2,days:[0,1,2,3,4,5,6],time_of_day:'morning',dose:'1000 IU'},
+    {id:3,med_id:3,days:[0,1,2,3,4,5,6],time_of_day:'evening',dose:'300mg'},
   ];
   let lid=1;
   for(let d=6;d>=0;d--){
@@ -637,12 +636,14 @@ function renderToday(){
       } else {
         list.append(renderGrouped(meds, med => {
           const tk=isTaken(med.id,time,today);
+          const sched=S.schedules.find(s=>s.med_id===med.id&&s.time_of_day===time);
+          const dose=sched?.dose||'';
           const row=document.createElement('button'); row.className='med-row'+(tk?' taken':'');
           row.innerHTML=`
             <div class="dot" style="background:${med.color}"></div>
             <div class="med-info">
               <span class="med-nm${tk?' strike':''}">${med.name}</span>
-              <span class="med-ds">${med.dose}</span>
+              ${dose?`<span class="med-ds">${dose}</span>`:''}
             </div>
             <div class="chk${tk?' on':''}"></div>`;
           row.onclick=()=>toggleLog(med.id,time);
@@ -730,13 +731,15 @@ function renderCalendar(){
         const tk=S.logs.some(l=>l.med_id===med.id&&l.time_of_day===time&&l.date===selStr);
         const sc2=tk?'ok':isFut?'fut':'no';
         const icon=tk?'✓':isFut?'·':'✗';
+        const calSched=S.schedules.find(s=>s.med_id===med.id&&s.time_of_day===time);
+        const dose=calSched?.dose||'';
         const row=document.createElement('div'); row.className='dt-med-row';
         row.style.cssText=isFut?'':'cursor:pointer;transition:opacity .15s';
         row.innerHTML=`
           <div class="dot" style="background:${med.color}"></div>
           <div style="flex:1">
             <span style="font-size:15px;font-weight:600;color:${tk?'#666':'#fff'};text-decoration:${tk?'line-through':'none'}">${med.name}</span>
-            <span style="font-size:12px;color:#444;margin-left:8px">${med.dose}</span>
+            ${dose?`<span style="font-size:12px;color:#444;margin-left:8px">${dose}</span>`:''}
           </div>
           <div class="dt-status ${sc2}">${icon}</div>`;
         if(!isFut) row.onclick=()=>toggleLog(med.id,time,selStr);
@@ -883,7 +886,8 @@ function renderSchedules(){
       const s=S.schedules.find(sc=>sc.med_id===med.id&&sc.time_of_day===t);
       if(!s||!s.days?.length) return '';
       const lbl=s.days.length===7?'Daily':s.days.map(d=>DAYS[d]).join(', ');
-      return `${TICON[t]} ${lbl}`;
+      const doseStr=s.dose?` ${s.dose} ·`:' ';
+      return `${TICON[t]}${doseStr}${lbl}`;
     }).filter(Boolean).join('  ·  ');
     const card=document.createElement('div');
     card.style.cssText='background:#1a1a1a;border-radius:16px;margin-bottom:10px;display:flex;align-items:stretch;overflow:hidden;cursor:pointer';
@@ -895,7 +899,7 @@ function renderSchedules(){
     const textBlock=document.createElement('div'); textBlock.style.cssText='flex:1;min-width:0';
     textBlock.innerHTML=`
       <p style="font-size:16px;font-weight:700;color:#fff;margin-bottom:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${med.name}</p>
-      <p style="font-size:13px;color:#666">${med.dose}${badges?`<span style="color:#888"> · ${badges}</span>`:'<span style="color:#444"> · No schedule set</span>'}</p>`;
+      <p style="font-size:13px;color:#666">${badges||'<span style="color:#444">No schedule set</span>'}</p>`;
     const arrow=document.createElement('span');
     arrow.style.cssText='font-size:18px;color:#333;flex-shrink:0';
     arrow.textContent='›';
@@ -933,9 +937,11 @@ function renderMeds(){
     const body=document.createElement('div');
     body.style.cssText='flex:1;padding:14px 14px 14px 16px;display:flex;align-items:center;gap:12px;min-width:0';
     const textBlock=document.createElement('div'); textBlock.style.cssText='flex:1;min-width:0';
+    const timeIcons=TIMES.filter(t=>S.schedules.some(s=>s.med_id===med.id&&s.time_of_day===t&&s.days?.length)).map(t=>TICON[t]).join(' ');
+    const infoLine=[timeIcons,med.notes].filter(Boolean).join(' · ');
     textBlock.innerHTML=`
       <p style="font-size:16px;font-weight:700;color:#fff;margin-bottom:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${med.name}</p>
-      <p style="font-size:13px;color:#666">${med.dose}${med.notes?`<span style="color:#444"> · ${med.notes}</span>`:''}${!hasSchedule?` <span style="color:#FF6B0088;font-size:11px">· no schedule</span>`:''}</p>`;
+      <p style="font-size:13px;color:#666">${infoLine||''}${!hasSchedule?` <span style="color:#FF6B0088;font-size:11px">· no schedule</span>`:''}</p>`;
     const pill=document.createElement('div');
     pill.style.cssText=`background:${med.color}18;border-radius:10px;padding:5px 10px;text-align:center;flex-shrink:0`;
     pill.innerHTML=`<p style="font-size:15px;font-weight:800;color:${med.color};line-height:1">${last7taken}</p><p style="font-size:9px;color:${med.color};opacity:.65;font-weight:700;letter-spacing:.3px">7 DAYS</p>`;
@@ -979,7 +985,6 @@ function openMedModal(){
   document.getElementById('med-modal-title').textContent='New Medication';
   document.getElementById('med-modal-save').textContent='Add';
   document.getElementById('f-name').value='';
-  document.getElementById('f-dose').value='';
   document.getElementById('f-notes').value='';
   document.getElementById('f-start').value=isoToday();
   renderGroupPicker();
@@ -999,7 +1004,6 @@ function openEditMedModal(med){
   document.getElementById('med-modal-title').textContent='Edit Medication';
   document.getElementById('med-modal-save').textContent='Save';
   document.getElementById('f-name').value=med.name;
-  document.getElementById('f-dose').value=med.dose;
   document.getElementById('f-notes').value=med.notes||'';
   document.getElementById('f-start').value=med.start_date||isoToday();
   renderGroupPicker();
@@ -1014,7 +1018,7 @@ function openEditMedModal(med){
 }
 async function submitMed(){
   const name=document.getElementById('f-name').value.trim(); if(!name) return;
-  const data={name,dose:document.getElementById('f-dose').value.trim(),notes:document.getElementById('f-notes').value.trim(),color:S.pickedColor,group:S.pickedGroup,start_date:document.getElementById('f-start').value||isoToday()};
+  const data={name,notes:document.getElementById('f-notes').value.trim(),color:S.pickedColor,group:S.pickedGroup,start_date:document.getElementById('f-start').value||isoToday()};
   if(S.editMedId){
     if(!DEMO) await sb('PATCH',`meds_medications?id=eq.${S.editMedId}`,data);
     const idx=S.meds.findIndex(m=>m.id===S.editMedId);
@@ -1045,7 +1049,7 @@ function openSchedModal(med){
   document.getElementById('sm-dot').style.background=med.color;
   document.getElementById('sm-name').textContent=med.name;
   S.schedEdit={};
-  TIMES.forEach(t=>{const ex=S.schedules.find(s=>s.med_id===med.id&&s.time_of_day===t);S.schedEdit[t]=[...(ex?.days||[])];});
+  TIMES.forEach(t=>{const ex=S.schedules.find(s=>s.med_id===med.id&&s.time_of_day===t);S.schedEdit[t]={days:[...(ex?.days||[])],dose:ex?.dose||''};});
   renderSchedBody(); openModal('modal-sched');
 }
 function renderSchedBody(){
@@ -1055,25 +1059,33 @@ function renderSchedBody(){
     sec.innerHTML=`<p style="font-size:15px;font-weight:700;color:#fff;margin-bottom:10px">${TICON[time]} ${TLABEL[time]}</p>`;
     const grid=document.createElement('div'); grid.className='day-grid';
     DAYS.forEach((d,i)=>{
-      const on=S.schedEdit[time].includes(i);
+      const on=S.schedEdit[time].days.includes(i);
       const btn=document.createElement('button'); btn.className='day-btn'+(on?' on':'');
       btn.style.background=on?TCOLOR[time]:'#222'; btn.textContent=d;
-      btn.onclick=()=>{if(on)S.schedEdit[time]=S.schedEdit[time].filter(x=>x!==i);else S.schedEdit[time].push(i);renderSchedBody();};
+      btn.onclick=()=>{if(on)S.schedEdit[time].days=S.schedEdit[time].days.filter(x=>x!==i);else S.schedEdit[time].days.push(i);renderSchedBody();};
       grid.append(btn);
     });
     sec.append(grid);
     const ab=document.createElement('button'); ab.className='all-btn';
-    ab.textContent=S.schedEdit[time].length===7?'Deselect all':'Every day';
-    ab.onclick=()=>{S.schedEdit[time]=S.schedEdit[time].length===7?[]:[0,1,2,3,4,5,6];renderSchedBody();};
-    sec.append(ab); body.append(sec);
+    ab.textContent=S.schedEdit[time].days.length===7?'Deselect all':'Every day';
+    ab.onclick=()=>{S.schedEdit[time].days=S.schedEdit[time].days.length===7?[]:[0,1,2,3,4,5,6];renderSchedBody();};
+    sec.append(ab);
+    const doseInp=document.createElement('input'); doseInp.className='field';
+    doseInp.placeholder='Dosage for this time (e.g. 400mg)';
+    doseInp.value=S.schedEdit[time].dose;
+    doseInp.style.marginTop='8px';
+    doseInp.oninput=()=>{S.schedEdit[time].dose=doseInp.value;};
+    sec.append(doseInp);
+    body.append(sec);
   });
 }
 async function submitSched(){
   const id=S.schedMedId;
   for(const t of TIMES){
-    if(!DEMO){await sb('DELETE',`meds_schedules?med_id=eq.${id}&time_of_day=eq.${t}`);if(S.schedEdit[t].length)await sb('POST','meds_schedules',{med_id:id,time_of_day:t,days:S.schedEdit[t]});}
+    const {days,dose}=S.schedEdit[t];
+    if(!DEMO){await sb('DELETE',`meds_schedules?med_id=eq.${id}&time_of_day=eq.${t}`);if(days.length)await sb('POST','meds_schedules',{med_id:id,time_of_day:t,days,dose});}
     S.schedules=S.schedules.filter(s=>!(s.med_id===id&&s.time_of_day===t));
-    if(S.schedEdit[t].length) S.schedules.push({id:Date.now()+Math.random(),med_id:id,time_of_day:t,days:[...S.schedEdit[t]]});
+    if(days.length) S.schedules.push({id:Date.now()+Math.random(),med_id:id,time_of_day:t,days:[...days],dose});
   }
   closeModal('modal-sched'); render();
 }
