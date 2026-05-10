@@ -446,11 +446,12 @@ function weekday(s) { return (new Date(s+'T12:00:00').getDay()+6)%7; }
 function isTaken(medId, time, date) { return S.logs.some(l=>l.med_id===medId&&l.time_of_day===time&&l.date===date); }
 
 function schedForDay(date) {
+  const isPast=date<isoToday();
   const w=weekday(date), r={morning:[],noon:[],evening:[]};
   S.schedules.forEach(s=>{
     if(!s.days?.includes(w)) return;
     const m=S.meds.find(x=>x.id===s.med_id);
-    if(!m||m.archived) return;
+    if(!m||(m.archived&&!isPast)) return;
     if(m.start_date && date < m.start_date) return;
     r[s.time_of_day].push(m);
   });
@@ -458,11 +459,12 @@ function schedForDay(date) {
   return r;
 }
 function dayStats(date) {
+  const isPast=date<isoToday();
   const w=weekday(date);
   const sc=S.schedules.filter(s=>{
     if(!s.days?.includes(w)) return false;
     const m=S.meds.find(x=>x.id===s.med_id);
-    if(!m||m.archived) return false;
+    if(!m||(m.archived&&!isPast)) return false;
     if(m.start_date && date < m.start_date) return false;
     return true;
   });
@@ -1031,16 +1033,9 @@ async function submitMed(){
   closeModal('modal-med'); render();
 }
 async function deleteMed(id){
-  if(!DEMO){
-    // Archive the med — keeps logs intact for history
-    await sb('PATCH',`meds_medications?id=eq.${id}`,{archived:true});
-    // Actually delete schedules so it disappears from Today
-    await sb('DELETE',`meds_schedules?med_id=eq.${id}`);
-  }
-  // Mark as archived in local state, remove schedules
+  if(!DEMO) await sb('PATCH',`meds_medications?id=eq.${id}`,{archived:true});
   const idx=S.meds.findIndex(m=>m.id===id);
   if(idx>=0) S.meds[idx].archived=true;
-  S.schedules=S.schedules.filter(s=>s.med_id!==id);
   S.delConfirm=null; render();
 }
 
