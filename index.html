@@ -455,6 +455,13 @@ function schedForDay(date) {
     if(m.start_date && date < m.start_date) return;
     r[s.time_of_day].push(m);
   });
+  if(isPast){
+    S.logs.filter(l=>l.date===date).forEach(l=>{
+      const m=S.meds.find(x=>x.id===l.med_id);
+      if(!m||!r[l.time_of_day]) return;
+      if(!r[l.time_of_day].some(x=>x.id===m.id)) r[l.time_of_day].push(m);
+    });
+  }
   r.morning=alpha(r.morning); r.noon=alpha(r.noon); r.evening=alpha(r.evening);
   return r;
 }
@@ -469,6 +476,10 @@ function dayStats(date) {
     return true;
   });
   const tk=sc.filter(s=>S.logs.some(l=>l.med_id===s.med_id&&l.time_of_day===s.time_of_day&&l.date===date)).length;
+  if(isPast){
+    const extra=S.logs.filter(l=>l.date===date&&!sc.some(s=>s.med_id===l.med_id&&s.time_of_day===l.time_of_day));
+    return {total:sc.length+extra.length, taken:tk+extra.length};
+  }
   return {total:sc.length, taken:tk};
 }
 
